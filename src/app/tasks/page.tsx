@@ -12,7 +12,14 @@ export default async function TasksPage() {
     redirect("/login");
   }
 
-  const raw = await getTasksForUser(session.user.id);
+  const [raw, projects] = await Promise.all([
+    getTasksForUser(session.user.id),
+    prisma.project.findMany({
+      where: { userId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, name: true },
+    }),
+  ]);
   const tasks: TaskListItem[] = raw.map((t) => ({
     id: t.id,
     title: t.title,
@@ -21,12 +28,6 @@ export default async function TasksPage() {
     projectId: t.projectId,
     project: t.project,
   }));
-
-  const projects = await prisma.project.findMany({
-    where: { userId: session.user.id },
-    orderBy: { updatedAt: "desc" },
-    select: { id: true, name: true },
-  });
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-12">
