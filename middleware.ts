@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 export async function middleware(req: NextRequest) {
-  // Keep middleware edge bundle minimal: avoid importing auth config
-  // because it can pull in Prisma/bcrypt and exceed Vercel Edge size limits.
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET,
-  });
-  const isLoggedIn = !!token;
+  // Keep middleware minimal for Vercel Edge size limit and avoid
+  // false negatives from token decoding differences in Auth.js v5.
+  const hasSessionCookie =
+    req.cookies.has("__Secure-authjs.session-token") ||
+    req.cookies.has("authjs.session-token");
+  const isLoggedIn = hasSessionCookie;
   const { pathname, search } = req.nextUrl;
 
   const isProtected =
