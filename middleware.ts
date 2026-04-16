@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
+export async function middleware(req: NextRequest) {
+  // Keep middleware edge bundle minimal: avoid importing auth config
+  // because it can pull in Prisma/bcrypt and exceed Vercel Edge size limits.
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+  });
+  const isLoggedIn = !!token;
   const { pathname, search } = req.nextUrl;
 
   const isProtected =
@@ -19,7 +26,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/dashboard/:path*", "/tasks/:path*", "/login"],
