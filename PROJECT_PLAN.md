@@ -200,4 +200,7 @@
 - [x] 登录页新增注册 Dialog（含 `registerAction`）
 - [x] 视觉升级：按钮与聚焦环引入 violet 强调色、Sidebar 顶部渐变质感
 - [x] 首页与 About 页整体改造：Hero + 特性卡 + Roadmap，与应用风格统一
+- [x] 登录页 C 方案炫酷特效：RetroGrid / Spotlight / Particles / Meteors / TiltCard / 渐变描边
+- [x] 任务详情抽屉（点击任务标题右侧 Sheet 滑出，内含编辑/状态/删除）
+- [x] 接入 sonner Toast：创建/保存/状态切换/删除/注册 全量反馈
 

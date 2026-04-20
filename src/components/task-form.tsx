@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { createTaskAction } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,11 +61,13 @@ export function TaskForm({
       const res = await createTaskAction(fd);
       if (!res.ok) {
         form.setError("root", { message: res.error });
+        toast.error(res.error ?? "创建任务失败");
         return;
       }
       form.reset();
       setProjectId("");
       router.refresh();
+      toast.success("任务已创建");
       onCreated?.();
     });
   });

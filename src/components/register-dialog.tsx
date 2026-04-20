@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { registerAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,7 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
       const res = await registerAction(fd);
       if (!res.ok) {
         setError(res.error);
+        toast.error(res.error ?? "注册失败");
         return;
       }
       const signInRes = await signIn("credentials", {
@@ -49,10 +51,12 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
       });
       if (signInRes?.error) {
         setError("注册成功，但自动登录失败，请手动登录");
+        toast.warning("注册成功，请手动登录");
         setOpen(false);
         return;
       }
       setOpen(false);
+      toast.success("欢迎加入 TaskFlow");
       router.push("/tasks");
       router.refresh();
     });

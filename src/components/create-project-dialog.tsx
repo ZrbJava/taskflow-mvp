@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { createProjectAction } from "@/app/actions/projects";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,11 +34,13 @@ export function CreateProjectDialog() {
       const res = await createProjectAction(fd);
       if (!res.ok) {
         setError(res.error);
+        toast.error(res.error ?? "创建项目失败");
         return;
       }
       setName("");
       setOpen(false);
       router.refresh();
+      toast.success("项目已创建");
     });
   };
 
