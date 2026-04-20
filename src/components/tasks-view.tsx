@@ -1,7 +1,8 @@
 "use client";
 
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import type { TaskListItem } from "@/types/task";
 import {
   TaskStatusFilter,
@@ -20,37 +21,96 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function TasksView({ tasks }: { tasks: TaskListItem[] }) {
-  const [filter, setFilter] = useState<TaskFilterValue>("all");
-  const [keyword, setKeyword] = useState("");
-  const [projectId, setProjectId] = useState("all");
+interface ProjectOption {
+  id: string;
+  name: string;
+}
 
-  const projectOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    tasks.forEach((task) => {
-      if (task.project?.id) {
-        map.set(task.project.id, task.project.name);
-      }
+interface CurrentQuery {
+  keyword: string;
+  status: string;
+  projectId: string;
+  sort: string;
+}
+
+interface TasksViewProps {
+  tasks: TaskListItem[];
+  projects: ProjectOption[];
+  currentQuery: CurrentQuery;
+}
+
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: "updated_desc", label: "最近更新" },
+  { value: "updated_asc", label: "最早更新" },
+  { value: "created_desc", label: "最新创建" },
+  { value: "created_asc", label: "最早创建" },
+];
+
+function buildQueryString(params: Record<string, string>): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (!value) return;
+    if (key === "status" && value === "all") return;
+    if (key === "projectId" && value === "all") return;
+    if (key === "sort" && value === "updated_desc") return;
+    search.set(key, value);
+  });
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export function TasksView({ tasks, projects, currentQuery }: TasksViewProps) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  const [keyword, setKeyword] = useState(currentQuery.keyword);
+  const [status, setStatus] = useState<TaskFilterValue>(
+    (currentQuery.status as TaskFilterValue) || "all",
+  );
+  const [projectId, setProjectId] = useState(currentQuery.projectId || "all");
+  const [sort, setSort] = useState(currentQuery.sort || "updated_desc");
+
+  useEffect(() => {
+    setKeyword(currentQuery.keyword);
+    setStatus((currentQuery.status as TaskFilterValue) || "all");
+    setProjectId(currentQuery.projectId || "all");
+    setSort(currentQuery.sort || "updated_desc");
+  }, [currentQuery.keyword, currentQuery.status, currentQuery.projectId, currentQuery.sort]);
+
+  const applyQuery = (next: Partial<CurrentQuery>) => {
+    const merged: Record<string, string> = {
+      keyword,
+      status,
+      projectId,
+      sort,
+      ...next,
+    };
+    const qs = buildQueryString(merged);
+    startTransition(() => {
+      router.push(`/tasks${qs}`);
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [tasks]);
+  };
 
-  const visible = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
+  const onKeywordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    applyQuery({ keyword: keyword.trim() });
+  };
 
-    return tasks.filter((task) => {
-      const matchesStatus = filter === "all" || task.status === filter;
-      const matchesProject = projectId === "all" || task.projectId === projectId;
-      const matchesKeyword =
-        normalized.length === 0 ||
-        task.title.toLowerCase().includes(normalized) ||
-        task.description?.toLowerCase().includes(normalized);
-
-      return matchesStatus && matchesProject && matchesKeyword;
+  const resetAll = () => {
+    setKeyword("");
+    setStatus("all");
+    setProjectId("all");
+    setSort("updated_desc");
+    startTransition(() => {
+      router.push("/tasks");
     });
-  }, [tasks, filter, keyword, projectId]);
+  };
 
-  const hasActiveFilters = filter !== "all" || projectId !== "all" || keyword.trim() !== "";
+  const hasActiveFilters =
+    status !== "all" ||
+    projectId !== "all" ||
+    (currentQuery.keyword && currentQuery.keyword.length > 0) ||
+    sort !== "updated_desc";
 
   return (
     <div className="space-y-4">
@@ -59,24 +119,21 @@ export function TasksView({ tasks }: { tasks: TaskListItem[] }) {
           <div>
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-zinc-700">任务工具栏</p>
-              <Badge variant="secondary">第一版</Badge>
+              <Badge variant="secondary">服务端筛选</Badge>
             </div>
             <p className="mt-1 text-sm text-zinc-500">
-              先支持客户端关键词、状态、项目筛选，后续再接服务端高级搜索。
+              关键词、状态、项目、排序都走 URL 参数，刷新后依旧保留。
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{visible.length} 条结果</Badge>
+            <Badge variant="secondary">{tasks.length} 条结果</Badge>
             {hasActiveFilters ? (
               <Button
                 type="button"
                 variant="ghost"
                 className="gap-2 rounded-lg px-3"
-                onClick={() => {
-                  setKeyword("");
-                  setFilter("all");
-                  setProjectId("all");
-                }}
+                onClick={resetAll}
+                disabled={pending}
               >
                 <X className="h-4 w-4" />
                 清空
@@ -85,26 +142,54 @@ export function TasksView({ tasks }: { tasks: TaskListItem[] }) {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+        <form
+          onSubmit={onKeywordSubmit}
+          className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_200px_200px_auto]"
+        >
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <Input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="搜索标题或描述"
+              placeholder="搜索标题或描述，回车应用"
               className="pl-9"
             />
           </label>
 
-          <Select value={projectId} onValueChange={setProjectId}>
+          <Select
+            value={projectId}
+            onValueChange={(value) => {
+              setProjectId(value);
+              applyQuery({ projectId: value });
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="选择项目" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部项目</SelectItem>
-              {projectOptions.map((project) => (
+              {projects.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={sort}
+            onValueChange={(value) => {
+              setSort(value);
+              applyQuery({ sort: value });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="排序" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -123,22 +208,28 @@ export function TasksView({ tasks }: { tasks: TaskListItem[] }) {
             </PopoverTrigger>
             <PopoverContent align="end">
               <p className="text-sm font-medium text-zinc-800">按状态筛选</p>
-              <p className="mt-1 text-xs text-zinc-500">后续这里会继续扩展日期和排序。</p>
+              <p className="mt-1 text-xs text-zinc-500">后续这里会继续扩展日期和更多条件。</p>
               <div className="mt-3">
-                <TaskStatusFilter value={filter} onChange={setFilter} />
+                <TaskStatusFilter
+                  value={status}
+                  onChange={(value) => {
+                    setStatus(value);
+                    applyQuery({ status: value });
+                  }}
+                />
               </div>
             </PopoverContent>
           </Popover>
-        </div>
+        </form>
       </div>
 
       <div className="grid gap-4">
-        {visible.length === 0 ? (
+        {tasks.length === 0 ? (
           <p className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
             当前筛选下没有任务。
           </p>
         ) : (
-          visible.map((task) => <TaskRow key={task.id} task={task} />)
+          tasks.map((task) => <TaskRow key={task.id} task={task} />)
         )}
       </div>
     </div>

@@ -53,7 +53,16 @@ export default async function ProjectDetailPage({
       </section>
 
       <TaskForm projects={[]} defaultProjectId={project.id} />
-      <TasksView tasks={tasks} />
+      <TasksView
+        tasks={tasks}
+        projects={[{ id: project.id, name: project.name }]}
+        currentQuery={{
+          keyword: "",
+          status: "all",
+          projectId: project.id,
+          sort: "updated_desc",
+        }}
+      />
     </main>
   );
 }

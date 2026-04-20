@@ -31,7 +31,7 @@ export function SelectContent({
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         position={position}
-        className={`z-50 min-w-[8rem] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg ${className}`}
+        className={`z-50 min-w-32 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg ${className}`}
         {...props}
       >
         <SelectPrimitive.Viewport className="p-1">
@@ -49,7 +49,7 @@ export function SelectItem({
 }: SelectPrimitive.SelectItemProps) {
   return (
     <SelectPrimitive.Item
-      className={`relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm text-zinc-700 outline-none data-[highlighted]:bg-zinc-100 data-[highlighted]:text-zinc-900 ${className}`}
+      className={`relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm text-zinc-700 outline-none data-highlighted:bg-zinc-100 data-highlighted:text-zinc-900 ${className}`}
       {...props}
     >
       <span className="absolute left-2 inline-flex h-4 w-4 items-center justify-center">
