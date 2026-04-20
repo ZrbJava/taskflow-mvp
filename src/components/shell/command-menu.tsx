@@ -7,6 +7,7 @@ import {
 	FolderKanban,
 	Info,
 	LayoutGrid,
+	LineChart,
 	ListChecks,
 	Plus,
 	Search,
@@ -145,6 +146,14 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 								icon={<FolderKanban className='h-4 w-4 text-zinc-500' />}
 							>
 								项目列表
+							</CmdItem>
+							<CmdItem
+								onSelect={() =>
+									run(() => router.push('/dashboard/insights'))
+								}
+								icon={<LineChart className='h-4 w-4 text-zinc-500' />}
+							>
+								数据洞察
 							</CmdItem>
 							<CmdItem
 								onSelect={() => run(() => router.push('/about'))}

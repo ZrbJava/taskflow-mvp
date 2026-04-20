@@ -8,6 +8,7 @@ import {
   ListChecks,
   FolderKanban,
   Info,
+  LineChart,
   LogOut,
   CircleDot,
   Search,
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "概览", icon: LayoutGrid, exact: true },
   { href: "/tasks", label: "我的任务", icon: ListChecks, exact: false },
   { href: "/dashboard/projects", label: "项目列表", icon: FolderKanban, exact: false },
+  { href: "/dashboard/insights", label: "数据洞察", icon: LineChart, exact: true },
   { href: "/about", label: "关于", icon: Info, exact: true },
 ];
 
