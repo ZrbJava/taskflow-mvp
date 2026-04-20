@@ -41,11 +41,19 @@ export function AppSidebar({ userEmail, projects }: AppSidebarProps) {
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
-      <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-white">
-          <Sparkles className="h-3.5 w-3.5" />
+      <div className="relative flex items-center gap-2 overflow-hidden border-b border-zinc-200 px-4 py-3">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-indigo-500/10 blur-3xl"
+        />
+        <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-violet-500 to-indigo-500 text-white shadow-sm shadow-violet-500/30">
+          <Sparkles className="h-4 w-4" />
         </div>
-        <div className="flex min-w-0 flex-col">
+        <div className="relative flex min-w-0 flex-col">
           <span className="truncate text-sm font-semibold">TaskFlow</span>
           <span className="truncate text-xs text-zinc-500">
             {userEmail ?? "未登录"}
@@ -61,11 +69,17 @@ export function AppSidebar({ userEmail, projects }: AppSidebarProps) {
           <li>
             <Link
               href="/tasks"
-              className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-700 hover:bg-zinc-100 ${
-                pathname === "/tasks" ? "bg-zinc-100 font-medium text-zinc-900" : ""
+              className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-700 transition hover:bg-zinc-100 ${
+                pathname === "/tasks"
+                  ? "bg-violet-50 font-medium text-violet-700"
+                  : ""
               }`}
             >
-              <Inbox className="h-4 w-4 text-zinc-500" />
+              <Inbox
+                className={`h-4 w-4 ${
+                  pathname === "/tasks" ? "text-violet-500" : "text-zinc-500"
+                }`}
+              />
               收件箱
             </Link>
           </li>
@@ -76,11 +90,17 @@ export function AppSidebar({ userEmail, projects }: AppSidebarProps) {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-700 hover:bg-zinc-100 ${
-                    active ? "bg-zinc-100 font-medium text-zinc-900" : ""
+                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-700 transition hover:bg-zinc-100 ${
+                    active
+                      ? "bg-violet-50 font-medium text-violet-700"
+                      : ""
                   }`}
                 >
-                  <Icon className="h-4 w-4 text-zinc-500" />
+                  <Icon
+                    className={`h-4 w-4 ${
+                      active ? "text-violet-500" : "text-zinc-500"
+                    }`}
+                  />
                   {item.label}
                 </Link>
               </li>
@@ -101,11 +121,17 @@ export function AppSidebar({ userEmail, projects }: AppSidebarProps) {
                   <li key={project.id}>
                     <Link
                       href={href}
-                      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-700 hover:bg-zinc-100 ${
-                        active ? "bg-zinc-100 font-medium text-zinc-900" : ""
+                      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-700 transition hover:bg-zinc-100 ${
+                        active
+                          ? "bg-violet-50 font-medium text-violet-700"
+                          : ""
                       }`}
                     >
-                      <CircleDot className="h-3.5 w-3.5 text-zinc-400" />
+                      <CircleDot
+                        className={`h-3.5 w-3.5 ${
+                          active ? "text-violet-500" : "text-zinc-400"
+                        }`}
+                      />
                       <span className="truncate">{project.name}</span>
                     </Link>
                   </li>

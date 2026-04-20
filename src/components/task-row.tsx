@@ -8,9 +8,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { TaskListItem, TaskStatus } from "@/types/task";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type ChangeEvent } from "react";
+import { useState, useTransition } from "react";
+import {
+  Circle,
+  CircleCheck,
+  CircleDashed,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 
 const statusLabel: Record<TaskStatus, string> = {
   todo: "待处理",
@@ -18,15 +33,35 @@ const statusLabel: Record<TaskStatus, string> = {
   done: "已完成",
 };
 
+const statusColor: Record<TaskStatus, string> = {
+  todo: "text-zinc-400",
+  doing: "text-amber-500",
+  done: "text-emerald-600",
+};
+
+function StatusIcon({
+  status,
+  className,
+}: {
+  status: TaskStatus;
+  className?: string;
+}) {
+  const cls = `h-4 w-4 ${statusColor[status]} ${className ?? ""}`;
+  if (status === "done") return <CircleCheck className={cls} />;
+  if (status === "doing") return <CircleDashed className={cls} />;
+  return <Circle className={cls} />;
+}
+
 export function TaskRow({ task }: { task: TaskListItem }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
 
-  const onStatusChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const status = e.target.value as TaskStatus;
+  const onStatusChange = (value: string) => {
+    const status = value as TaskStatus;
     startTransition(async () => {
       await updateTaskStatusAction(task.id, status);
       router.refresh();
@@ -55,61 +90,22 @@ export function TaskRow({ task }: { task: TaskListItem }) {
     });
   };
 
-  return (
-    <article className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          {editing ? (
-            <div className="space-y-2">
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Textarea
-                rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-          ) : (
-            <>
-              <h3 className="text-base font-semibold text-zinc-900">
-                {task.title}
-              </h3>
-              {task.description ? (
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  {task.description}
-                </p>
-              ) : null}
-              {task.project ? (
-                <p className="mt-2 text-xs text-zinc-500">
-                  项目：{task.project.name}
-                </p>
-              ) : null}
-            </>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2 sm:items-end">
-          <label className="text-xs text-zinc-500" htmlFor={`status-${task.id}`}>
-            状态
-          </label>
-          <select
-            id={`status-${task.id}`}
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm"
-            value={task.status}
-            disabled={pending}
-            onChange={onStatusChange}
-          >
-            {(Object.keys(statusLabel) as TaskStatus[]).map((s) => (
-              <option key={s} value={s}>
-                {statusLabel[s]}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {editing ? (
-          <>
+  if (editing) {
+    return (
+      <div className="bg-zinc-50/50 px-4 py-3">
+        <div className="space-y-2">
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="标题"
+          />
+          <Textarea
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="描述（可选）"
+          />
+          <div className="flex gap-2">
             <Button type="button" onClick={onSaveEdit} disabled={pending}>
               {pending ? "保存中…" : "保存"}
             </Button>
@@ -125,33 +121,98 @@ export function TaskRow({ task }: { task: TaskListItem }) {
             >
               取消
             </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setEditing(true)}
-              disabled={pending}
-            >
-              编辑
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              onClick={onDelete}
-              disabled={pending}
-            >
-              {pending ? "处理中…" : "删除"}
-            </Button>
-          </>
-        )}
+          </div>
+        </div>
       </div>
-      {pending ? (
-        <p className="mt-3 text-xs text-amber-700">
-          正在同步任务状态，请稍候…
-        </p>
+    );
+  }
+
+  return (
+    <div className="group relative flex items-center gap-3 px-4 py-2 transition hover:bg-zinc-50">
+      <div className="w-[104px] shrink-0">
+        <Select
+          value={task.status}
+          onValueChange={onStatusChange}
+          disabled={pending}
+        >
+          <SelectTrigger
+            aria-label="任务状态"
+            className="h-7! w-full border-0 bg-transparent px-1.5 py-1 text-xs text-zinc-700 shadow-none hover:bg-zinc-100 focus:ring-0"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(statusLabel) as TaskStatus[]).map((s) => (
+              <SelectItem key={s} value={s}>
+                <span className="inline-flex items-center gap-2">
+                  <StatusIcon status={s} />
+                  {statusLabel[s]}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-zinc-900">
+          {task.title}
+        </div>
+        {task.description ? (
+          <p className="mt-0.5 truncate text-xs text-zinc-500">
+            {task.description}
+          </p>
+        ) : null}
+      </div>
+
+      {task.project ? (
+        <span className="hidden shrink-0 text-xs text-zinc-500 sm:inline">
+          {task.project.name}
+        </span>
       ) : null}
-    </article>
+
+      <div className="relative w-8 shrink-0 text-right">
+        <button
+          type="button"
+          onClick={() => setShowMenu((v) => !v)}
+          className="inline-flex items-center justify-center rounded-md p-1.5 text-zinc-500 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-900 group-hover:opacity-100"
+          aria-label="更多操作"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+        {showMenu ? (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowMenu(false)}
+            />
+            <div className="absolute right-0 top-8 z-20 w-32 overflow-hidden rounded-lg border border-zinc-200 bg-white py-1 text-left shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
+                  setEditing(true);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                编辑
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
+                  onDelete();
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                删除
+              </button>
+            </div>
+          </>
+        ) : null}
+      </div>
+    </div>
   );
 }

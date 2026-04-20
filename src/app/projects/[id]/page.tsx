@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { TaskForm } from "@/components/task-form";
+import { CreateTaskSheet } from "@/components/create-task-sheet";
 import { TasksView } from "@/components/tasks-view";
 import { prisma } from "@/lib/db";
 import type { TaskListItem } from "@/types/task";
@@ -44,15 +44,24 @@ export default async function ProjectDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-12">
-      <section className="rounded-xl border border-zinc-200 bg-white p-8">
-        <p className="text-sm text-zinc-500">/projects/[id]</p>
-        <h1 className="mt-3 text-3xl font-semibold">{project.name}</h1>
-        <p className="mt-4 text-zinc-600">
-          仅项目所有者可访问；任务列表同样按用户隔离。
-        </p>
+      <section className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-wider text-zinc-400">
+            Project
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
+            {project.name}
+          </h1>
+          <p className="mt-2 text-sm text-zinc-500">
+            仅项目所有者可访问；任务列表同样按用户隔离。
+          </p>
+        </div>
+        <CreateTaskSheet
+          projects={[{ id: project.id, name: project.name }]}
+          defaultProjectId={project.id}
+        />
       </section>
 
-      <TaskForm projects={[]} defaultProjectId={project.id} />
       <TasksView
         tasks={tasks}
         projects={[{ id: project.id, name: project.name }]}

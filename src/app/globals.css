@@ -24,3 +24,179 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* —— 登录页炫酷动效 —— */
+
+@keyframes grid-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 48px, 0);
+  }
+}
+
+@keyframes conic-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes hero-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.retro-grid {
+  background-image:
+    linear-gradient(to right, rgba(139, 92, 246, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(139, 92, 246, 0.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: grid-scroll 12s linear infinite;
+  -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 85%);
+  mask-image: linear-gradient(to bottom, black 40%, transparent 85%);
+}
+
+.gradient-border {
+  position: relative;
+  isolation: isolate;
+}
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(139, 92, 246, 0),
+    rgba(139, 92, 246, 0.8),
+    rgba(99, 102, 241, 0.8),
+    rgba(139, 92, 246, 0)
+  );
+  animation: conic-spin 6s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.hero-pulse {
+  animation: hero-pulse 4s ease-in-out infinite;
+}
+
+/* —— C 方案：流星 / 粒子 / orbs / 光标 —— */
+
+@keyframes meteor {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(215deg);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-120vw, 120vh, 0) rotate(215deg);
+    opacity: 0;
+  }
+}
+
+.meteor {
+  position: absolute;
+  top: -20%;
+  width: 2px;
+  height: 80px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #ffffff, rgba(139, 92, 246, 0.8) 40%, transparent);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.7);
+  animation: meteor var(--meteor-duration, 6s) linear infinite;
+  animation-delay: var(--meteor-delay, 0s);
+}
+.meteor::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -2px;
+  width: 6px;
+  height: 100%;
+  background: rgba(139, 92, 246, 0.35);
+  filter: blur(8px);
+  border-radius: 9999px;
+}
+
+@keyframes particle-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translate3d(var(--pdx, 8px), var(--pdy, -12px), 0);
+    opacity: 1;
+  }
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: rgba(199, 188, 255, 0.9);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.55);
+  animation: particle-float var(--p-duration, 8s) ease-in-out infinite;
+  animation-delay: var(--p-delay, 0s);
+}
+
+@keyframes orb-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(var(--odx, 40px), var(--ody, -30px), 0) scale(1.05);
+  }
+}
+
+.orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  opacity: 0.55;
+  animation: orb-drift var(--orb-duration, 14s) ease-in-out infinite;
+}
+
+@keyframes blink-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.blink-caret {
+  animation: blink-caret 1s steps(1) infinite;
+}
+
+@keyframes title-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 24px rgba(139, 92, 246, 0.6));
+  }
+}
+
+.title-glow {
+  animation: title-glow 4s ease-in-out infinite;
+}

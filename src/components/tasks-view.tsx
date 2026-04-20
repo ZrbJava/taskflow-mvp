@@ -223,15 +223,29 @@ export function TasksView({ tasks, projects, currentQuery }: TasksViewProps) {
         </form>
       </div>
 
-      <div className="grid gap-4">
-        {tasks.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
-            当前筛选下没有任务。
-          </p>
-        ) : (
-          tasks.map((task) => <TaskRow key={task.id} task={task} />)
-        )}
-      </div>
+      {tasks.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
+          当前筛选下没有任务。
+        </p>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-zinc-200 bg-zinc-50/50 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+            <span className="w-[104px] shrink-0">状态</span>
+            <span className="min-w-0 flex-1">任务</span>
+            <span className="hidden shrink-0 text-right sm:inline-block sm:w-32">
+              项目
+            </span>
+            <span className="w-8 shrink-0" aria-hidden />
+          </div>
+          <ul className="divide-y divide-zinc-100">
+            {tasks.map((task) => (
+              <li key={task.id}>
+                <TaskRow task={task} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

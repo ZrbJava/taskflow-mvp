@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { TaskForm } from "@/components/task-form";
+import { CreateTaskSheet } from "@/components/create-task-sheet";
 import { TasksView } from "@/components/tasks-view";
 import { prisma } from "@/lib/db";
 import { getTasksForUser, type TaskQuery, type TaskSort } from "@/lib/tasks-data";
@@ -73,17 +73,22 @@ export default async function TasksPage({
   }));
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-12">
-      <section className="rounded-xl border border-zinc-200 bg-white p-8">
-        <p className="text-sm text-zinc-500">Day 04–10 · 任务中心</p>
-        <h1 className="mt-2 text-3xl font-semibold">我的任务</h1>
-        <p className="mt-3 text-zinc-600">
-          列表由服务端读取并按 URL 参数筛选；创建/编辑/删除通过 Server Actions 写入数据库并触发
-          `revalidatePath` 刷新相关页面。
-        </p>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10">
+      <section className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-wider text-zinc-400">
+            Tasks
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
+            我的任务
+          </h1>
+          <p className="mt-2 text-sm text-zinc-500">
+            服务端筛选 + URL 同步，刷新后保留条件。
+          </p>
+        </div>
+        <CreateTaskSheet projects={projects} />
       </section>
 
-      <TaskForm projects={projects} />
       <TasksView
         tasks={tasks}
         projects={projects}

@@ -14,7 +14,7 @@ import {
   type CreateTaskInput,
 } from "@/lib/validations/task";
 
-interface ProjectOption {
+export interface ProjectOption {
   id: string;
   name: string;
 }
@@ -22,9 +22,16 @@ interface ProjectOption {
 interface TaskFormProps {
   projects: ProjectOption[];
   defaultProjectId?: string | null;
+  hideCard?: boolean;
+  onCreated?: () => void;
 }
 
-export function TaskForm({ projects, defaultProjectId }: TaskFormProps) {
+export function TaskForm({
+  projects,
+  defaultProjectId,
+  hideCard = false,
+  onCreated,
+}: TaskFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [projectId, setProjectId] = useState("");
@@ -58,13 +65,16 @@ export function TaskForm({ projects, defaultProjectId }: TaskFormProps) {
       form.reset();
       setProjectId("");
       router.refresh();
+      onCreated?.();
     });
   });
 
-  return (
-    <Card>
-      <h2 className="text-lg font-semibold">新建任务</h2>
-      <form className="mt-4 space-y-3" onSubmit={onSubmit}>
+  const content = (
+    <>
+      {!hideCard ? (
+        <h2 className="text-lg font-semibold">新建任务</h2>
+      ) : null}
+      <form className={hideCard ? "space-y-3" : "mt-4 space-y-3"} onSubmit={onSubmit}>
         <div>
           <label className="text-sm text-zinc-600" htmlFor="title">
             标题
@@ -82,7 +92,7 @@ export function TaskForm({ projects, defaultProjectId }: TaskFormProps) {
           </label>
           <Textarea
             id="description"
-            rows={3}
+            rows={4}
             className="mt-1"
             {...form.register("description")}
           />
@@ -128,10 +138,16 @@ export function TaskForm({ projects, defaultProjectId }: TaskFormProps) {
             {form.formState.errors.root.message}
           </p>
         ) : null}
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {pending ? "提交中…" : "创建任务"}
         </Button>
       </form>
-    </Card>
+    </>
   );
+
+  if (hideCard) {
+    return content;
+  }
+
+  return <Card>{content}</Card>;
 }

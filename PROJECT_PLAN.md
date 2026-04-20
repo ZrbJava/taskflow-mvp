@@ -21,11 +21,12 @@
 
 ## 本周重点
 
-- [ ] `P0` 完成任务高级搜索与筛选第一版
-- [ ] `P0` 引入更适合 SaaS 风格的 UI 组件体系
+- [~] `P0` 完成任务高级搜索与筛选第一版（后端+URL+UI 已完成，剩日期筛选）
+- [~] `P0` 引入更适合 SaaS 风格的 UI 组件体系（App Shell 已上，持续补组件）
 - [ ] `P1` 新增 1-2 个可展示模块/页面
 - [ ] `P1` 梳理并落地 ACL 权限设计第一版
 - [ ] `P1` 提升 README 与项目说明的展示质量
+- [~] `P0` 对标 Linear 第一波：App Shell 左侧导航、密度更高的列表样式
 
 ---
 
@@ -191,4 +192,12 @@
 - [x] 任务页顶部改造为 SaaS 风格工具栏（关键词 + 状态 + 项目 + 清空）
 - [x] `getTasksForUser` 支持 keyword/status/projectId/sort 服务端筛选
 - [x] `/tasks` 筛选与 URL 参数同步，刷新后保留
+- [x] 全站切换为 Linear 风格 App Shell（左侧导航 + 右侧工作区）
+- [x] 任务列表改为密度更高的 Linear 风格行（状态图标、项目徽标、悬浮操作）
+- [x] Dialog / Sheet 基础组件（Radix）
+- [x] 新建项目改为 Dialog
+- [x] 新建任务改为右侧 Drawer
+- [x] 登录页新增注册 Dialog（含 `registerAction`）
+- [x] 视觉升级：按钮与聚焦环引入 violet 强调色、Sidebar 顶部渐变质感
+- [x] 首页与 About 页整体改造：Hero + 特性卡 + Roadmap，与应用风格统一
 
