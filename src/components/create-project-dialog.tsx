@@ -1,8 +1,8 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createProjectAction } from "@/app/actions/projects";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,28 @@ import { Input } from "@/components/ui/input";
 
 export function CreateProjectDialog() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (searchParams.get("compose") === "1") {
+      setOpen(true);
+    }
+  }, [searchParams]);
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next && searchParams.get("compose") === "1") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("compose");
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    }
+  };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,14 +56,14 @@ export function CreateProjectDialog() {
         return;
       }
       setName("");
-      setOpen(false);
+      handleOpenChange(false);
       router.refresh();
       toast.success("项目已创建");
     });
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button type="button" className="gap-2 rounded-lg">
           <Plus className="h-4 w-4" />

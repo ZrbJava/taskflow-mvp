@@ -10,6 +10,7 @@ import {
   Info,
   LogOut,
   CircleDot,
+  Search,
   Sparkles,
 } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
@@ -59,6 +60,27 @@ export function AppSidebar({ userEmail, projects }: AppSidebarProps) {
             {userEmail ?? "未登录"}
           </span>
         </div>
+      </div>
+
+      <div className="px-3 pt-3">
+        <button
+          type="button"
+          onClick={() => {
+            const event = new KeyboardEvent("keydown", {
+              key: "k",
+              metaKey: true,
+              bubbles: true,
+            });
+            window.dispatchEvent(event);
+          }}
+          className="group flex w-full items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50/80 px-2.5 py-1.5 text-sm text-zinc-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-zinc-700"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span className="flex-1 text-left">搜索 / 跳转</span>
+          <kbd className="rounded border border-zinc-300 bg-white px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 group-hover:border-violet-300">
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3 text-sm">

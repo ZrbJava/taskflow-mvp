@@ -203,4 +203,6 @@
 - [x] 登录页 C 方案炫酷特效：RetroGrid / Spotlight / Particles / Meteors / TiltCard / 渐变描边
 - [x] 任务详情抽屉（点击任务标题右侧 Sheet 滑出，内含编辑/状态/删除）
 - [x] 接入 sonner Toast：创建/保存/状态切换/删除/注册 全量反馈
+- [x] 命令面板（Cmd+K）：cmdk 搜索/跳转/新建任务/新建项目/访问项目
+- [x] Sidebar 增加「搜索 / ⌘K」入口
 
