@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getTasksForUser, type TaskQuery, type TaskSort } from "@/lib/tasks-data";
 import type { TaskListItem, TaskStatus } from "@/types/task";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 const ALLOWED_STATUS: TaskStatus[] = ["todo", "doing", "done"];
 const ALLOWED_SORT: TaskSort[] = [
@@ -54,6 +55,8 @@ export default async function TasksPage({
 
   const sp = await searchParams;
   const query = parseTaskQuery(sp);
+  const rawTaskId = pickFirst(sp.taskId)?.trim();
+  const openTaskId = rawTaskId && rawTaskId.length > 0 ? rawTaskId : undefined;
 
   const [raw, projects] = await Promise.all([
     getTasksForUser(session.user.id, query),
@@ -89,16 +92,25 @@ export default async function TasksPage({
         <CreateTaskSheet projects={projects} />
       </section>
 
-      <TasksView
-        tasks={tasks}
-        projects={projects}
-        currentQuery={{
-          keyword: query.keyword ?? "",
-          status: (query.status as string) ?? "all",
-          projectId: (query.projectId as string) ?? "all",
-          sort: query.sort ?? "updated_desc",
-        }}
-      />
+      <Suspense
+        fallback={
+          <div className="rounded-xl border border-zinc-200 bg-white p-8 text-sm text-zinc-500">
+            加载任务列表…
+          </div>
+        }
+      >
+        <TasksView
+          tasks={tasks}
+          projects={projects}
+          openTaskId={openTaskId}
+          currentQuery={{
+            keyword: query.keyword ?? "",
+            status: (query.status as string) ?? "all",
+            projectId: (query.projectId as string) ?? "all",
+            sort: query.sort ?? "updated_desc",
+          }}
+        />
+      </Suspense>
     </main>
   );
 }

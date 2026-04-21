@@ -9,6 +9,7 @@ import {
 	LayoutGrid,
 	LineChart,
 	ListChecks,
+	Loader2,
 	Plus,
 	Search,
 } from 'lucide-react'
@@ -20,6 +21,7 @@ import {
 	DialogDescription,
 	DialogTitle,
 } from '@/components/ui/dialog'
+import type { TaskPaletteHit } from '@/types/task'
 
 interface SidebarProject {
 	id: string
@@ -30,10 +32,19 @@ interface CommandMenuProps {
 	projects: SidebarProject[]
 }
 
+const STATUS_LABEL: Record<TaskPaletteHit['status'], string> = {
+	todo: '待处理',
+	doing: '进行中',
+	done: '已完成',
+}
+
 export function CommandMenu({ projects }: CommandMenuProps) {
 	const router = useRouter()
 	const [open, setOpen] = useState(false)
 	const [keyword, setKeyword] = useState('')
+	const [debounced, setDebounced] = useState('')
+	const [hits, setHits] = useState<TaskPaletteHit[]>([])
+	const [loadingHits, setLoadingHits] = useState(false)
 
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
@@ -46,9 +57,52 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 		return () => window.removeEventListener('keydown', onKeyDown)
 	}, [])
 
+	const handleOpenChange = (next: boolean) => {
+		setOpen(next)
+		if (!next) {
+			setKeyword('')
+			setDebounced('')
+			setHits([])
+			setLoadingHits(false)
+		}
+	}
+
 	useEffect(() => {
-		if (!open) setKeyword('')
-	}, [open])
+		const t = window.setTimeout(() => setDebounced(keyword.trim()), 280)
+		return () => window.clearTimeout(t)
+	}, [keyword])
+
+	useEffect(() => {
+		if (!open) return
+		if (debounced.length < 1) {
+			setHits([])
+			setLoadingHits(false)
+			return
+		}
+
+		const ac = new AbortController()
+		setLoadingHits(true)
+		fetch(`/api/command/search?q=${encodeURIComponent(debounced)}`, {
+			signal: ac.signal,
+		})
+			.then(async res => {
+				if (!res.ok) {
+					setHits([])
+					return
+				}
+				const data = (await res.json()) as { tasks?: TaskPaletteHit[] }
+				setHits(Array.isArray(data.tasks) ? data.tasks : [])
+			})
+			.catch(err => {
+				if ((err as Error).name === 'AbortError') return
+				setHits([])
+			})
+			.finally(() => {
+				if (!ac.signal.aborted) setLoadingHits(false)
+			})
+
+		return () => ac.abort()
+	}, [open, debounced])
 
 	const run = (fn: () => void) => {
 		setOpen(false)
@@ -62,8 +116,17 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 		})
 	}
 
+	const goTask = (id: string) => {
+		run(() => {
+			router.push(`/tasks?taskId=${encodeURIComponent(id)}`)
+		})
+	}
+
+	const typing = keyword.trim().length > 0
+	const shouldFilter = !typing
+
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogContent
 				className='w-[92vw] max-w-xl overflow-hidden p-0'
 				showCloseButton={false}
@@ -73,6 +136,7 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 					搜索任务、跳转页面或执行快捷操作。
 				</DialogDescription>
 				<Command
+					shouldFilter={shouldFilter}
 					label='全局命令面板'
 					className='[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-zinc-400'
 				>
@@ -90,26 +154,75 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 					</div>
 
 					<Command.List className='max-h-96 overflow-y-auto p-1.5'>
-						<Command.Empty className='px-3 py-6 text-center text-sm text-zinc-500'>
-							没找到匹配项。按回车在任务中搜索。
-						</Command.Empty>
+						{typing ? (
+							<>
+								{loadingHits ? (
+									<div className='flex items-center gap-2 px-3 py-4 text-sm text-zinc-500'>
+										<Loader2 className='h-4 w-4 animate-spin text-violet-500' />
+										搜索任务…
+									</div>
+								) : null}
+								{!loadingHits && hits.length > 0 ? (
+									<Command.Group heading='匹配的任务'>
+										{hits.map(t => (
+											<CmdItem
+												key={t.id}
+												value={`task-${t.id}-${t.title}`}
+												onSelect={() => goTask(t.id)}
+												icon={
+													<Search className='h-4 w-4 text-violet-500' />
+												}
+												right={
+													<span className='flex shrink-0 items-center gap-2 text-[11px] text-zinc-400'>
+														<span>{STATUS_LABEL[t.status]}</span>
+														{t.project ? (
+															<span className='max-w-[7rem] truncate'>
+																{t.project.name}
+															</span>
+														) : (
+															<span>无项目</span>
+														)}
+														<ArrowRight className='h-3.5 w-3.5' />
+													</span>
+												}
+											>
+												<span className='truncate'>{t.title}</span>
+											</CmdItem>
+										))}
+									</Command.Group>
+								) : null}
+								<Command.Group heading='搜索'>
+									<CmdItem
+										value={`search-${keyword.trim()}`}
+										onSelect={searchTasks}
+										icon={<Search className='h-4 w-4 text-violet-500' />}
+										right={
+											<ArrowRight className='h-3.5 w-3.5 text-zinc-400' />
+										}
+									>
+										在任务列表中打开「
+										<span className='font-medium text-zinc-900'>
+											{keyword.trim()}
+										</span>
+										」
+									</CmdItem>
+								</Command.Group>
+								<Command.Empty className='px-3 py-6 text-center text-sm text-zinc-500'>
+									{loadingHits
+										? '正在搜索…'
+										: '没有匹配的任务。可用下方入口在完整列表中搜索。'}
+								</Command.Empty>
+							</>
+						) : (
+							<>
+								<Command.Empty className='px-3 py-6 text-center text-sm text-zinc-500'>
+									没找到匹配项。试试输入任务标题关键词。
+								</Command.Empty>
+							</>
+						)}
 
-						{keyword.trim().length > 0 ? (
-							<Command.Group heading='搜索'>
-								<CmdItem
-									onSelect={searchTasks}
-									icon={<Search className='h-4 w-4 text-violet-500' />}
-									right={<ArrowRight className='h-3.5 w-3.5 text-zinc-400' />}
-								>
-									在任务中搜索「
-									<span className='font-medium text-zinc-900'>
-										{keyword.trim()}
-									</span>
-									」
-								</CmdItem>
-							</Command.Group>
-						) : null}
-
+						{!typing ? (
+							<>
 						<Command.Group heading='操作'>
 							<CmdItem
 								onSelect={() => run(() => router.push('/tasks?compose=1'))}
@@ -176,6 +289,8 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 								))}
 							</Command.Group>
 						) : null}
+							</>
+						) : null}
 					</Command.List>
 
 					<div className='flex items-center justify-between border-t border-zinc-200 px-3 py-2 text-[11px] text-zinc-400'>
@@ -203,14 +318,17 @@ function CmdItem({
 	icon,
 	children,
 	right,
+	value,
 }: {
 	onSelect: () => void
 	icon?: React.ReactNode
 	children: React.ReactNode
 	right?: React.ReactNode
+	value?: string
 }) {
 	return (
 		<Command.Item
+			value={value}
 			onSelect={onSelect}
 			className='flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-zinc-700 aria-selected:bg-violet-50 aria-selected:text-zinc-900'
 		>

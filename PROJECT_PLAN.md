@@ -24,7 +24,7 @@
 - [~] `P0` 完成任务高级搜索与筛选第一版（后端+URL+UI 已完成，剩日期筛选）
 - [~] `P0` 引入更适合 SaaS 风格的 UI 组件体系（App Shell 已上，持续补组件）
 - [ ] `P1` 新增 1-2 个可展示模块/页面
-- [ ] `P1` 梳理并落地 ACL 权限设计第一版
+- [x] `P1` 梳理并落地 ACL 权限设计第一版
 - [ ] `P1` 提升 README 与项目说明的展示质量
 - [~] `P0` 对标 Linear 第一波：App Shell 左侧导航、密度更高的列表样式
 
@@ -134,7 +134,7 @@
 - [ ] `P0` 增加关键流程测试：登录
 - [ ] `P0` 增加关键流程测试：创建任务
 - [ ] `P0` 增加关键流程测试：权限拦截
-- [ ] `P1` 配置 CI：`lint + test + build`
+- [x] `P1` 配置 CI：`lint + test + build`（GitHub Actions）
 - [ ] `P1` 增加错误日志与边界处理
 - [ ] `P1` 评估接入监控/埋点
 - [ ] `P2` 迁移 Prisma 配置到 `prisma.config.ts`
@@ -205,6 +205,8 @@
 - [x] 任务详情抽屉（点击任务标题右侧 Sheet 滑出，内含编辑/状态/删除）
 - [x] 接入 sonner Toast：创建/保存/状态切换/删除/注册 全量反馈
 - [x] 命令面板（Cmd+K）：cmdk 搜索/跳转/新建任务/新建项目/访问项目
+- [x] 命令面板服务端任务搜索：`GET /api/command/search`，命中项跳转 `/tasks?taskId=` 并打开详情抽屉
+- [x] GitHub Actions：`pnpm lint` + `pnpm test` + `pnpm build`
 - [x] Sidebar 增加「搜索 / ⌘K」入口
 - [x] Insights 数据洞察页：指标卡 / 近 7 天趋势 / 状态分布 / 项目分布
 - [x] Sidebar + CommandMenu 新增 Insights 入口

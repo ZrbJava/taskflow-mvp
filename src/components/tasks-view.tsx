@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { TaskListItem } from "@/types/task";
 import {
@@ -37,6 +37,8 @@ interface TasksViewProps {
   tasks: TaskListItem[];
   projects: ProjectOption[];
   currentQuery: CurrentQuery;
+  /** 来自 `/tasks?taskId=`，用于命令面板等深链打开详情抽屉 */
+  openTaskId?: string;
 }
 
 const SORT_OPTIONS: { value: string; label: string }[] = [
@@ -59,9 +61,24 @@ function buildQueryString(params: Record<string, string>): string {
   return qs ? `?${qs}` : "";
 }
 
-export function TasksView({ tasks, projects, currentQuery }: TasksViewProps) {
+export function TasksView({
+  tasks,
+  projects,
+  currentQuery,
+  openTaskId,
+}: TasksViewProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
+
+  const stripTaskIdFromUrl = () => {
+    if (!searchParams.get("taskId")) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("taskId");
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  };
 
   const [keyword, setKeyword] = useState(currentQuery.keyword);
   const [status, setStatus] = useState<TaskFilterValue>(
@@ -240,7 +257,13 @@ export function TasksView({ tasks, projects, currentQuery }: TasksViewProps) {
           <ul className="divide-y divide-zinc-100">
             {tasks.map((task) => (
               <li key={task.id}>
-                <TaskRow task={task} />
+                <TaskRow
+                  task={task}
+                  initialDetailOpen={openTaskId === task.id}
+                  onDetailClose={
+                    openTaskId === task.id ? stripTaskIdFromUrl : undefined
+                  }
+                />
               </li>
             ))}
           </ul>

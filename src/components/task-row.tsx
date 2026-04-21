@@ -15,7 +15,7 @@ import {
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
 import type { TaskListItem, TaskStatus } from "@/types/task";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Circle,
   CircleCheck,
@@ -50,11 +50,23 @@ function StatusIcon({
   return <Circle className={cls} />;
 }
 
-export function TaskRow({ task }: { task: TaskListItem }) {
+export function TaskRow({
+  task,
+  initialDetailOpen = false,
+  onDetailClose,
+}: {
+  task: TaskListItem;
+  initialDetailOpen?: boolean;
+  onDetailClose?: () => void;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [showMenu, setShowMenu] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(initialDetailOpen);
+
+  useEffect(() => {
+    setDetailOpen(initialDetailOpen);
+  }, [initialDetailOpen]);
 
   const onStatusChange = (value: string) => {
     const status = value as TaskStatus;
@@ -178,7 +190,10 @@ export function TaskRow({ task }: { task: TaskListItem }) {
       <TaskDetailSheet
         task={task}
         open={detailOpen}
-        onOpenChange={setDetailOpen}
+        onOpenChange={(open) => {
+          setDetailOpen(open);
+          if (!open) onDetailClose?.();
+        }}
       />
     </>
   );

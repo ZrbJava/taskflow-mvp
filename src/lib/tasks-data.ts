@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
-import type { TaskStatus } from "@/types/task";
+import type { TaskPaletteHit, TaskStatus } from "@/types/task";
 
 export type TaskWithProject = Awaited<
   ReturnType<typeof getTasksForUser>
@@ -54,5 +54,33 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
     where,
     orderBy: buildOrderBy(sort),
     include: { project: { select: { id: true, name: true } } },
+  });
+}
+
+/** 命令面板等场景的轻量搜索，按最近更新排序，限制条数。 */
+export async function searchTasksForPalette(
+  userId: string,
+  keyword: string,
+  limit = 8,
+): Promise<TaskPaletteHit[]> {
+  const trimmed = keyword.trim();
+  if (!trimmed) return [];
+
+  return prisma.task.findMany({
+    where: {
+      userId,
+      OR: [
+        { title: { contains: trimmed, mode: "insensitive" } },
+        { description: { contains: trimmed, mode: "insensitive" } },
+      ],
+    },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      project: { select: { id: true, name: true } },
+    },
   });
 }
