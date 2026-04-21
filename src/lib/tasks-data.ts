@@ -88,7 +88,10 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
   return prisma.task.findMany({
     where,
     orderBy: buildOrderBy(sort),
-    include: { project: { select: { id: true, name: true } } },
+    include: {
+      project: { select: { id: true, name: true } },
+      labels: { select: { id: true, name: true, color: true } },
+    },
   });
 }
 

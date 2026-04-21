@@ -7,6 +7,7 @@ import type {
 import { GripVertical } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { TaskDetailSheet } from '@/components/task-detail-sheet'
+import { TaskLabelChips } from '@/components/task-label-chips'
 import { PRIORITY_BADGE_CLASS, PRIORITY_LABEL } from '@/lib/task-priority'
 import {
 	formatRelativeUpdatedCn,
@@ -118,6 +119,7 @@ export function TaskBoardCard({
 						</span>
 					) : null}
 				</div>
+				<TaskLabelChips labels={task.labels} className='mt-1.5' />
 				{dueLabel ? (
 					<p className='mt-2 text-xs text-zinc-500'>截止 {dueLabel}</p>
 				) : null}

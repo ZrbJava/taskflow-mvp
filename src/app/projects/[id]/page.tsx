@@ -67,6 +67,11 @@ export default async function ProjectDetailPage({
 		updatedAt: t.updatedAt.toISOString(),
 		projectId: t.projectId,
 		project: t.project,
+		labels: t.labels.map(l => ({
+			id: l.id,
+			name: l.name,
+			color: l.color,
+		})),
 	}))
 
 	return (
@@ -80,7 +85,8 @@ export default async function ProjectDetailPage({
 						{project.name}
 					</h1>
 					<p className='mt-2 text-sm text-zinc-500'>
-						与「我的任务」相同的筛选与列表/看板视图；条件写入 URL，仅本项目数据。
+						与「我的任务」相同的筛选与列表/看板视图；条件写入
+						URL，仅本项目数据。
 					</p>
 					<p className='mt-2 text-xs text-zinc-400'>
 						<Link

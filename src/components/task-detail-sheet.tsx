@@ -1,9 +1,15 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { MessageSquare, Tag, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import {
+  addCommentAction,
+  deleteCommentAction,
+  listCommentsForTaskAction,
+} from "@/app/actions/comments";
+import { createLabelAction, listLabelsForUserAction, setTaskLabelsAction } from "@/app/actions/labels";
 import {
   deleteTaskAction,
   updateTaskAction,
@@ -44,6 +50,13 @@ const statusLabel: Record<TaskStatus, string> = {
   done: "已完成",
 };
 
+type CommentRow = {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorEmail: string;
+};
+
 export function TaskDetailSheet({
   task,
   open,
@@ -58,6 +71,16 @@ export function TaskDetailSheet({
   const [dueYmd, setDueYmd] = useState(() => dueDateToYmd(task.dueDate));
   const [error, setError] = useState<string | null>(null);
 
+  const [allLabels, setAllLabels] = useState<
+    { id: string; name: string; color: string | null }[]
+  >([]);
+  const [labelSelection, setLabelSelection] = useState<string[]>(() =>
+    task.labels.map((l) => l.id),
+  );
+  const [quickLabelName, setQuickLabelName] = useState("");
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [newComment, setNewComment] = useState("");
+
   useEffect(() => {
     if (open) {
       setTitle(task.title);
@@ -66,6 +89,7 @@ export function TaskDetailSheet({
       setPriority(task.priority);
       setDueYmd(dueDateToYmd(task.dueDate));
       setError(null);
+      setLabelSelection(task.labels.map((l) => l.id));
     }
   }, [
     open,
@@ -75,7 +99,25 @@ export function TaskDetailSheet({
     task.status,
     task.priority,
     task.dueDate,
+    task.labels,
   ]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const [lr, cr] = await Promise.all([
+        listLabelsForUserAction(),
+        listCommentsForTaskAction(task.id),
+      ]);
+      if (cancelled) return;
+      if (lr.ok) setAllLabels(lr.labels);
+      if (cr.ok) setComments(cr.comments);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, task.id]);
 
   const dirty =
     title.trim() !== task.title ||
@@ -136,19 +178,87 @@ export function TaskDetailSheet({
     });
   };
 
+  const toggleLabel = (labelId: string) => {
+    const next = labelSelection.includes(labelId)
+      ? labelSelection.filter((id) => id !== labelId)
+      : [...labelSelection, labelId];
+    setLabelSelection(next);
+    startTransition(async () => {
+      const res = await setTaskLabelsAction(task.id, next);
+      if (!res.ok) {
+        toast.error(res.error ?? "更新标签失败");
+        setLabelSelection(task.labels.map((l) => l.id));
+        return;
+      }
+      router.refresh();
+    });
+  };
+
+  const quickCreateLabel = () => {
+    const n = quickLabelName.trim();
+    if (!n.length) return;
+    startTransition(async () => {
+      const res = await createLabelAction(n, null);
+      if (!res.ok) {
+        toast.error(res.error ?? "创建标签失败");
+        return;
+      }
+      setQuickLabelName("");
+      const next = [...labelSelection, res.label.id];
+      setLabelSelection(next);
+      const setRes = await setTaskLabelsAction(task.id, next);
+      if (!setRes.ok) {
+        toast.error(setRes.error ?? "关联失败");
+        return;
+      }
+      setAllLabels((prev) =>
+        [...prev, res.label].sort((a, b) => a.name.localeCompare(b.name, "zh")),
+      );
+      router.refresh();
+    });
+  };
+
+  const submitComment = () => {
+    const body = newComment.trim();
+    if (!body) return;
+    startTransition(async () => {
+      const res = await addCommentAction(task.id, body);
+      if (!res.ok) {
+        toast.error(res.error ?? "发送失败");
+        return;
+      }
+      setNewComment("");
+      const list = await listCommentsForTaskAction(task.id);
+      if (list.ok) setComments(list.comments);
+      router.refresh();
+    });
+  };
+
+  const removeComment = (commentId: string) => {
+    startTransition(async () => {
+      const res = await deleteCommentAction(commentId);
+      if (!res.ok) {
+        toast.error(res.error ?? "删除失败");
+        return;
+      }
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      router.refresh();
+    });
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg">
+      <SheetContent className="flex max-h-[100dvh] flex-col sm:max-w-xl">
         <SheetHeader>
           <SheetTitle className="text-base font-semibold text-zinc-900">
             任务详情
           </SheetTitle>
           <SheetDescription className="text-xs text-zinc-500">
-            编辑标题、描述或切换状态，保存后列表将自动刷新。
+            编辑内容、标签与讨论；标签在「工作台 → 标签」集中管理。
           </SheetDescription>
         </SheetHeader>
 
-        <SheetBody className="space-y-4">
+        <SheetBody className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           <div>
             <label className="text-xs font-medium text-zinc-500" htmlFor="detail-title">
               标题
@@ -170,7 +280,7 @@ export function TaskDetailSheet({
             </label>
             <Textarea
               id="detail-desc"
-              rows={6}
+              rows={5}
               className="mt-1"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -244,6 +354,106 @@ export function TaskDetailSheet({
             </div>
           ) : null}
 
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-zinc-600">
+              <Tag className="h-3.5 w-3.5" />
+              标签
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {allLabels.length === 0 ? (
+                <p className="text-xs text-zinc-500">暂无可用标签，可在下方快速创建。</p>
+              ) : (
+                allLabels.map((l) => (
+                  <label
+                    key={l.id}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs"
+                  >
+                    <input
+                      type="checkbox"
+                      className="rounded border-zinc-300"
+                      checked={labelSelection.includes(l.id)}
+                      onChange={() => toggleLabel(l.id)}
+                    />
+                    <span
+                      style={l.color ? { color: l.color } : undefined}
+                      className="font-medium text-zinc-800"
+                    >
+                      {l.name}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Input
+                value={quickLabelName}
+                onChange={(e) => setQuickLabelName(e.target.value)}
+                placeholder="新标签名称"
+                className="max-w-[12rem] text-sm"
+                maxLength={48}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={quickCreateLabel}
+                disabled={pending || !quickLabelName.trim()}
+              >
+                创建并关联
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-white p-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-zinc-600">
+              <MessageSquare className="h-3.5 w-3.5" />
+              讨论
+            </div>
+            <ul className="mt-2 max-h-48 space-y-2 overflow-y-auto">
+              {comments.length === 0 ? (
+                <li className="text-xs text-zinc-500">暂无评论。</li>
+              ) : (
+                comments.map((c) => (
+                  <li
+                    key={c.id}
+                    className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-2 py-1.5 text-sm"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="whitespace-pre-wrap text-zinc-800">{c.body}</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-7 shrink-0 px-1.5 text-zinc-400 hover:text-red-600"
+                        onClick={() => removeComment(c.id)}
+                        aria-label="删除评论"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-[10px] text-zinc-400">
+                      {c.authorEmail} ·{" "}
+                      {new Date(c.createdAt).toLocaleString("zh-CN")}
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
+            <Textarea
+              rows={3}
+              className="mt-2 text-sm"
+              placeholder="写一条评论…"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <Button
+              type="button"
+              className="mt-2"
+              onClick={submitComment}
+              disabled={pending || !newComment.trim()}
+            >
+              发送
+            </Button>
+          </div>
+
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 text-xs text-zinc-500">
@@ -251,7 +461,7 @@ export function TaskDetailSheet({
           </div>
         </SheetBody>
 
-        <SheetFooter>
+        <SheetFooter className="border-t border-zinc-100 pt-4">
           <div className="flex flex-1 items-center justify-between gap-2">
             <Button
               type="button"

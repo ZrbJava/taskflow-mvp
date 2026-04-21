@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
+import { TaskLabelChips } from "@/components/task-label-chips";
 import { PRIORITY_BADGE_CLASS, PRIORITY_LABEL } from "@/lib/task-priority";
 import type { TaskListItem, TaskStatus } from "@/types/task";
 import { useRouter } from "next/navigation";
@@ -161,6 +162,7 @@ export function TaskRow({
                 {task.description}
               </p>
             ) : null}
+            <TaskLabelChips labels={task.labels} className="mt-1.5" />
           </span>
         </button>
 

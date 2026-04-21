@@ -47,6 +47,11 @@ export default async function TasksPage({
 		updatedAt: t.updatedAt.toISOString(),
 		projectId: t.projectId,
 		project: t.project,
+		labels: t.labels.map(l => ({
+			id: l.id,
+			name: l.name,
+			color: l.color,
+		})),
 	}))
 
 	return (

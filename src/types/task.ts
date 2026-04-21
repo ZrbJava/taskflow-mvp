@@ -2,6 +2,13 @@ export type TaskStatus = 'todo' | 'doing' | 'done'
 
 export type TaskPriority = 'none' | 'low' | 'medium' | 'high' | 'urgent'
 
+/** 任务上挂载的标签（用户维度定义，多对多） */
+export type TaskLabelRef = {
+	id: string
+	name: string
+	color: string | null
+}
+
 export interface TaskListItem {
 	id: string
 	title: string
@@ -14,6 +21,7 @@ export interface TaskListItem {
 	updatedAt: string
 	projectId: string | null
 	project: { id: string; name: string } | null
+	labels: TaskLabelRef[]
 }
 
 /** 命令面板等场景的轻量任务摘要（无 description）。 */

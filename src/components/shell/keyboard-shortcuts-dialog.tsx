@@ -15,7 +15,10 @@ const SHORTCUT_GROUPS: {
 	{
 		title: '全局',
 		items: [
-			{ keys: '⌘ K / Ctrl+K', desc: '打开命令面板（搜索任务、跳转页面）' },
+			{
+				keys: '⌘ K / Ctrl+K',
+				desc: '打开命令面板（搜索任务、跳转概览/项目/标签等页面）',
+			},
 			{ keys: '?', desc: '打开本快捷键说明（输入框内无效）' },
 		],
 	},

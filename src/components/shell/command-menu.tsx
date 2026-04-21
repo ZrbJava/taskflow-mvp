@@ -12,6 +12,7 @@ import {
 	LayoutGrid,
 	LineChart,
 	ListChecks,
+	Tag,
 	Loader2,
 	Plus,
 	Search,
@@ -290,6 +291,14 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 										icon={<FolderKanban className='h-4 w-4 text-zinc-500' />}
 									>
 										项目列表
+									</CmdItem>
+									<CmdItem
+										onSelect={() =>
+											run(() => router.push('/dashboard/labels'))
+										}
+										icon={<Tag className='h-4 w-4 text-zinc-500' />}
+									>
+										标签
 									</CmdItem>
 									<CmdItem
 										onSelect={() =>

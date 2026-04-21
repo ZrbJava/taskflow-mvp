@@ -13,6 +13,7 @@ import {
 	CircleDot,
 	Search,
 	Sparkles,
+	Tag,
 } from 'lucide-react'
 import { signOutAction } from '@/app/actions/auth'
 
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
 		icon: FolderKanban,
 		exact: false,
 	},
+	{ href: '/dashboard/labels', label: '标签', icon: Tag, exact: true },
 	{
 		href: '/dashboard/insights',
 		label: '数据洞察',
