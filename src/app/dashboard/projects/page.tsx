@@ -14,6 +14,12 @@ export default async function DashboardProjectsPage() {
   const projects = await prisma.project.findMany({
     where: { userId: session.user.id },
     orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      updatedAt: true,
+      _count: { select: { tasks: true } },
+    },
   });
 
   return (
@@ -52,7 +58,8 @@ export default async function DashboardProjectsPage() {
                     {p.name}
                   </p>
                   <p className="text-xs text-zinc-500">
-                    更新于 {new Date(p.updatedAt).toLocaleDateString()}
+                    {p._count.tasks} 个任务 · 更新于{" "}
+                    {new Date(p.updatedAt).toLocaleDateString("zh-CN")}
                   </p>
                 </div>
               </Link>
