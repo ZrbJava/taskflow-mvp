@@ -6,7 +6,9 @@ import {
 	CircleDot,
 	Columns2,
 	FolderKanban,
+	Home,
 	Info,
+	Keyboard,
 	LayoutGrid,
 	LineChart,
 	ListChecks,
@@ -24,6 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { PRIORITY_LABEL } from '@/lib/task-priority'
 import type { TaskPaletteHit } from '@/types/task'
+import { OPEN_SHORTCUTS_EVENT } from '@/components/shell/keyboard-shortcuts-dialog'
 
 interface SidebarProject {
 	id: string
@@ -257,10 +260,16 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 
 								<Command.Group heading='跳转'>
 									<CmdItem
+										onSelect={() => run(() => router.push('/'))}
+										icon={<Home className='h-4 w-4 text-zinc-500' />}
+									>
+										首页
+									</CmdItem>
+									<CmdItem
 										onSelect={() => run(() => router.push('/dashboard'))}
 										icon={<LayoutGrid className='h-4 w-4 text-zinc-500' />}
 									>
-										概览
+										工作台
 									</CmdItem>
 									<CmdItem
 										onSelect={() => run(() => router.push('/tasks'))}
@@ -272,7 +281,7 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 										onSelect={() => run(() => router.push('/tasks?view=board'))}
 										icon={<Columns2 className='h-4 w-4 text-zinc-500' />}
 									>
-										任务看板
+										收件箱看板
 									</CmdItem>
 									<CmdItem
 										onSelect={() =>
@@ -319,8 +328,8 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 						) : null}
 					</Command.List>
 
-					<div className='flex items-center justify-between border-t border-zinc-200 px-3 py-2 text-[11px] text-zinc-400'>
-						<div className='flex items-center gap-3'>
+					<div className='flex flex-wrap items-center justify-between gap-2 border-t border-zinc-200 px-3 py-2 text-[11px] text-zinc-400'>
+						<div className='flex flex-wrap items-center gap-3'>
 							<span className='inline-flex items-center gap-1'>
 								<Shortcut>↑</Shortcut>
 								<Shortcut>↓</Shortcut>
@@ -330,6 +339,18 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 								<Shortcut>↵</Shortcut>
 								执行
 							</span>
+							<button
+								type='button'
+								onClick={() =>
+									run(() =>
+										window.dispatchEvent(new Event(OPEN_SHORTCUTS_EVENT))
+									)
+								}
+								className='inline-flex items-center gap-1 rounded text-violet-600 transition hover:text-violet-800'
+							>
+								<Keyboard className='h-3.5 w-3.5' />
+								全部快捷键
+							</button>
 						</div>
 						<span className='font-mono'>cmdk · TaskFlow</span>
 					</div>
