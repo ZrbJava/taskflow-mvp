@@ -30,6 +30,12 @@ const STATUS_TITLE: Record<TaskStatus, string> = {
 	done: '已完成',
 }
 
+const STATUS_HEAD: Record<TaskStatus, { dot: string }> = {
+	todo: { dot: 'bg-zinc-400' },
+	doing: { dot: 'bg-amber-500' },
+	done: { dot: 'bg-emerald-500' },
+}
+
 function resolveDropColumn(
 	overId: UniqueIdentifier,
 	tasks: TaskListItem[]
@@ -100,7 +106,7 @@ function BoardColumn({
 
 	return (
 		<section
-			className={`flex min-h-[min(60vh,28rem)] flex-col rounded-xl border bg-zinc-50/40 p-3 transition-colors ${
+			className={`flex min-h-[min(52vh,22rem)] w-[min(20rem,calc(100vw-2.5rem))] shrink-0 snap-start flex-col rounded-xl border bg-zinc-50/40 p-3 transition-colors md:min-h-[min(60vh,28rem)] md:w-auto md:min-w-0 ${
 				dropDisabled ? 'opacity-60' : ''
 			} ${
 				isOver && !dropDisabled
@@ -108,15 +114,23 @@ function BoardColumn({
 					: 'border-zinc-200'
 			}`}
 		>
-			<div className='mb-3 flex items-center justify-between gap-2'>
-				<span className='text-xs font-semibold uppercase tracking-wide text-zinc-500'>
-					{STATUS_TITLE[status]}
+			<div className='mb-3 flex items-center justify-between gap-2 border-b border-zinc-200/70 pb-2'>
+				<span className='flex min-w-0 items-center gap-2'>
+					<span
+						className={`h-2 w-2 shrink-0 rounded-full ${STATUS_HEAD[status].dot}`}
+						aria-hidden
+					/>
+					<span className='truncate text-xs font-semibold uppercase tracking-wide text-zinc-600'>
+						{STATUS_TITLE[status]}
+					</span>
 				</span>
-				<Badge variant='secondary'>{count}</Badge>
+				<Badge variant='secondary' className='shrink-0 tabular-nums'>
+					{count}
+				</Badge>
 			</div>
 			<div
 				ref={setNodeRef}
-				className='flex min-h-[12rem] flex-col gap-2 rounded-lg border border-transparent'
+				className='flex min-h-[12rem] max-h-[min(65vh,36rem)] flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-lg border border-transparent pr-0.5 [scrollbar-gutter:stable]'
 			>
 				{children}
 			</div>
@@ -199,12 +213,12 @@ export function TasksBoard({
 			onDragEnd={handleDragEnd}
 		>
 			<p className='mb-2 text-xs text-zinc-500'>
-				拖动卡片左侧手柄到其它列即可更新状态（与列表共用同一套权限校验）。
+				拖动手柄跨列即可改状态；点击卡片正文打开详情。与列表共用服务端权限与筛选。
 				{pending ? (
 					<span className='ml-1 text-violet-600'>正在保存…</span>
 				) : null}
 			</p>
-			<div className='grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start'>
+			<div className='flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-visible pb-2 [-webkit-overflow-scrolling:touch] md:grid md:snap-none md:grid-cols-3 md:items-start md:overflow-visible md:pb-0'>
 				{STATUSES.map(s => (
 					<BoardColumn
 						key={s}

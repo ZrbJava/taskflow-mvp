@@ -8,7 +8,31 @@ import { GripVertical } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { TaskDetailSheet } from '@/components/task-detail-sheet'
 import { PRIORITY_BADGE_CLASS, PRIORITY_LABEL } from '@/lib/task-priority'
+import {
+	formatRelativeUpdatedCn,
+	formatUpdatedStableShort,
+} from '@/lib/relative-time'
 import type { TaskListItem, TaskStatus } from '@/types/task'
+
+function BoardCardUpdated({ iso }: { iso: string }) {
+	const [label, setLabel] = useState(() => formatUpdatedStableShort(iso))
+	useEffect(() => {
+		setLabel(formatRelativeUpdatedCn(iso))
+		const id = window.setInterval(
+			() => setLabel(formatRelativeUpdatedCn(iso)),
+			60_000
+		)
+		return () => window.clearInterval(id)
+	}, [iso])
+	return (
+		<p
+			className='mt-1.5 text-[11px] text-zinc-400'
+			title={new Date(iso).toLocaleString('zh-CN')}
+		>
+			更新 {label}
+		</p>
+	)
+}
 
 const COLUMN_TOP: Record<TaskStatus, string> = {
 	todo: 'border-t-zinc-400',
@@ -102,6 +126,7 @@ export function TaskBoardCard({
 						{task.project.name}
 					</p>
 				) : null}
+				<BoardCardUpdated iso={task.updatedAt} />
 			</button>
 		</div>
 	)

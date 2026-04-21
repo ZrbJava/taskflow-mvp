@@ -104,12 +104,13 @@ export default async function TasksPage({
 		status: t.status,
 		priority: t.priority,
 		dueDate: t.dueDate?.toISOString() ?? null,
+		updatedAt: t.updatedAt.toISOString(),
 		projectId: t.projectId,
 		project: t.project,
 	}))
 
 	return (
-		<main className='mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-6 py-10'>
+		<main className='mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6'>
 			<section className='flex items-start justify-between gap-4'>
 				<div>
 					<p className='font-mono text-xs uppercase tracking-wider text-zinc-400'>

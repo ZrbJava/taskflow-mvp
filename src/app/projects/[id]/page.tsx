@@ -50,6 +50,7 @@ export default async function ProjectDetailPage({
 		status: t.status,
 		priority: t.priority,
 		dueDate: t.dueDate?.toISOString() ?? null,
+		updatedAt: t.updatedAt.toISOString(),
 		projectId: t.projectId,
 		project: t.project,
 	}))

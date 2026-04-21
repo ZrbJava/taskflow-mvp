@@ -9,7 +9,7 @@ import {
 	X,
 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { utcTodayYmd, utcYmdDaysAgo } from '@/lib/date-query'
 import { PRIORITY_LABEL } from '@/lib/task-priority'
 import type { TaskListItem } from '@/types/task'
@@ -112,41 +112,6 @@ export function TasksView({
 
 	const keywordRef = useRef<HTMLInputElement>(null)
 
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (pathname !== '/tasks') return
-			const el = e.target as HTMLElement | null
-			if (!el) return
-			const inField =
-				el.tagName === 'INPUT' ||
-				el.tagName === 'TEXTAREA' ||
-				el.tagName === 'SELECT' ||
-				el.isContentEditable
-
-			if (e.metaKey || e.ctrlKey || e.altKey) return
-
-			if (!inField && (e.key === 'f' || e.key === 'F')) {
-				e.preventDefault()
-				keywordRef.current?.focus()
-				return
-			}
-
-			if (inField) return
-
-			if (e.key === 'c' || e.key === 'C') {
-				e.preventDefault()
-				const next = new URLSearchParams(searchParams.toString())
-				next.set('compose', '1')
-				const q = next.toString()
-				startTransition(() => {
-					router.push(q ? `/tasks?${q}` : '/tasks?compose=1')
-				})
-			}
-		}
-		window.addEventListener('keydown', onKey)
-		return () => window.removeEventListener('keydown', onKey)
-	}, [pathname, router, searchParams])
-
 	const [keyword, setKeyword] = useState(currentQuery.keyword)
 	const [status, setStatus] = useState<TaskFilterValue>(
 		(currentQuery.status as TaskFilterValue) || 'all'
@@ -180,8 +145,25 @@ export function TasksView({
 		currentQuery.view,
 	])
 
-	const applyQuery = (next: Partial<CurrentQuery>) => {
-		const merged: Record<string, string> = {
+	const applyQuery = useCallback(
+		(next: Partial<CurrentQuery>) => {
+			const merged: Record<string, string> = {
+				keyword,
+				status,
+				projectId,
+				sort,
+				dateFrom,
+				dateTo,
+				priority,
+				view,
+				...next,
+			}
+			const qs = buildQueryString(merged)
+			startTransition(() => {
+				router.push(`/tasks${qs}`)
+			})
+		},
+		[
 			keyword,
 			status,
 			projectId,
@@ -190,13 +172,53 @@ export function TasksView({
 			dateTo,
 			priority,
 			view,
-			...next,
+			router,
+			startTransition,
+		]
+	)
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (pathname !== '/tasks') return
+			const el = e.target as HTMLElement | null
+			if (!el) return
+			const inField =
+				el.tagName === 'INPUT' ||
+				el.tagName === 'TEXTAREA' ||
+				el.tagName === 'SELECT' ||
+				el.isContentEditable
+
+			if (e.metaKey || e.ctrlKey || e.altKey) return
+
+			if (!inField && (e.key === 'f' || e.key === 'F')) {
+				e.preventDefault()
+				keywordRef.current?.focus()
+				return
+			}
+
+			if (inField) return
+
+			if (e.key === 'c' || e.key === 'C') {
+				e.preventDefault()
+				const next = new URLSearchParams(searchParams.toString())
+				next.set('compose', '1')
+				const q = next.toString()
+				startTransition(() => {
+					router.push(q ? `/tasks?${q}` : '/tasks?compose=1')
+				})
+				return
+			}
+
+			if (e.key === 'b' || e.key === 'B') {
+				e.preventDefault()
+				const nextView = view === 'board' ? 'list' : 'board'
+				setView(nextView)
+				applyQuery({ view: nextView })
+			}
 		}
-		const qs = buildQueryString(merged)
-		startTransition(() => {
-			router.push(`/tasks${qs}`)
-		})
-	}
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	}, [pathname, router, searchParams, view, applyQuery, startTransition])
 
 	const onKeywordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
@@ -488,6 +510,10 @@ export function TasksView({
 							C
 						</kbd>
 						新建 ·
+						<kbd className='mx-0.5 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600'>
+							B
+						</kbd>
+						列表/看板 ·
 						<kbd className='mx-0.5 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600'>
 							F
 						</kbd>
