@@ -27,7 +27,13 @@ describe("normalizeDateRange", () => {
 describe("updatedAtFilterFromQuery", () => {
   it("builds gte/lte in UTC", () => {
     const f = updatedAtFilterFromQuery("2026-01-01", "2026-01-02");
-    expect(f?.gte?.toISOString()).toBe("2026-01-01T00:00:00.000Z");
-    expect(f?.lte?.toISOString()).toBe("2026-01-02T23:59:59.999Z");
+    const gte = f?.gte;
+    const lte = f?.lte;
+    expect(gte instanceof Date ? gte.toISOString() : gte).toBe(
+      "2026-01-01T00:00:00.000Z",
+    );
+    expect(lte instanceof Date ? lte.toISOString() : lte).toBe(
+      "2026-01-02T23:59:59.999Z",
+    );
   });
 });

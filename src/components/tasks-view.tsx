@@ -4,6 +4,7 @@ import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { utcTodayYmd, utcYmdDaysAgo } from "@/lib/date-query";
+import { PRIORITY_LABEL } from "@/lib/task-priority";
 import type { TaskListItem } from "@/types/task";
 import {
   TaskStatusFilter,
@@ -34,6 +35,7 @@ interface CurrentQuery {
   sort: string;
   dateFrom: string;
   dateTo: string;
+  priority: string;
 }
 
 interface TasksViewProps {
@@ -49,6 +51,8 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "updated_asc", label: "最早更新" },
   { value: "created_desc", label: "最新创建" },
   { value: "created_asc", label: "最早创建" },
+  { value: "due_asc", label: "截止 ↑（最早在前）" },
+  { value: "due_desc", label: "截止 ↓（最晚在前）" },
 ];
 
 const STATUS_CHIP: Record<string, string> = {
@@ -65,6 +69,7 @@ function buildQueryString(params: Record<string, string>): string {
     if (key === "projectId" && value === "all") return;
     if (key === "sort" && value === "updated_desc") return;
     if ((key === "dateFrom" || key === "dateTo") && !value) return;
+    if (key === "priority" && value === "all") return;
     search.set(key, value);
   });
   const qs = search.toString();
@@ -90,6 +95,33 @@ export function TasksView({
     router.replace(qs ? `${pathname}?${qs}` : pathname);
   };
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (pathname !== "/tasks") return;
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      if (
+        el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.tagName === "SELECT" ||
+        el.isContentEditable
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key !== "c" && e.key !== "C") return;
+      e.preventDefault();
+      const next = new URLSearchParams(searchParams.toString());
+      next.set("compose", "1");
+      const q = next.toString();
+      startTransition(() => {
+        router.push(q ? `/tasks?${q}` : "/tasks?compose=1");
+      });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pathname, router, searchParams]);
+
   const [keyword, setKeyword] = useState(currentQuery.keyword);
   const [status, setStatus] = useState<TaskFilterValue>(
     (currentQuery.status as TaskFilterValue) || "all",
@@ -98,6 +130,7 @@ export function TasksView({
   const [sort, setSort] = useState(currentQuery.sort || "updated_desc");
   const [dateFrom, setDateFrom] = useState(currentQuery.dateFrom || "");
   const [dateTo, setDateTo] = useState(currentQuery.dateTo || "");
+  const [priority, setPriority] = useState(currentQuery.priority || "all");
 
   useEffect(() => {
     setKeyword(currentQuery.keyword);
@@ -106,6 +139,7 @@ export function TasksView({
     setSort(currentQuery.sort || "updated_desc");
     setDateFrom(currentQuery.dateFrom || "");
     setDateTo(currentQuery.dateTo || "");
+    setPriority(currentQuery.priority || "all");
   }, [
     currentQuery.keyword,
     currentQuery.status,
@@ -113,6 +147,7 @@ export function TasksView({
     currentQuery.sort,
     currentQuery.dateFrom,
     currentQuery.dateTo,
+    currentQuery.priority,
   ]);
 
   const applyQuery = (next: Partial<CurrentQuery>) => {
@@ -123,6 +158,7 @@ export function TasksView({
       sort,
       dateFrom,
       dateTo,
+      priority,
       ...next,
     };
     const qs = buildQueryString(merged);
@@ -143,6 +179,7 @@ export function TasksView({
     setSort("updated_desc");
     setDateFrom("");
     setDateTo("");
+    setPriority("all");
     startTransition(() => {
       router.push("/tasks");
     });
@@ -168,7 +205,8 @@ export function TasksView({
     (currentQuery.keyword && currentQuery.keyword.length > 0) ||
     sort !== "updated_desc" ||
     Boolean(currentQuery.dateFrom) ||
-    Boolean(currentQuery.dateTo);
+    Boolean(currentQuery.dateTo) ||
+    currentQuery.priority !== "all";
 
   const sortLabel =
     SORT_OPTIONS.find((o) => o.value === currentQuery.sort)?.label ?? "最近更新";
@@ -273,7 +311,28 @@ export function TasksView({
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-[min(100vw-2rem,22rem)]">
-              <p className="text-sm font-medium text-zinc-800">状态</p>
+              <p className="text-sm font-medium text-zinc-800">优先级</p>
+              <Select
+                value={priority}
+                onValueChange={(value) => {
+                  setPriority(value);
+                  applyQuery({ priority: value });
+                }}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="全部" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  <SelectItem value="none">无</SelectItem>
+                  <SelectItem value="low">低</SelectItem>
+                  <SelectItem value="medium">中</SelectItem>
+                  <SelectItem value="high">高</SelectItem>
+                  <SelectItem value="urgent">紧急</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <p className="mt-5 text-sm font-medium text-zinc-800">状态</p>
               <div className="mt-3">
                 <TaskStatusFilter
                   value={status}
@@ -351,6 +410,15 @@ export function TasksView({
             </PopoverContent>
           </Popover>
         </form>
+        {pathname === "/tasks" ? (
+          <p className="mt-3 text-xs text-zinc-400">
+            快捷键：按{" "}
+            <kbd className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600">
+              C
+            </kbd>{" "}
+            打开新建任务（保留当前筛选条件）。
+          </p>
+        ) : null}
       </div>
 
       {hasActiveFilters ? (
@@ -394,6 +462,15 @@ export function TasksView({
               }}
             />
           ) : null}
+          {currentQuery.priority !== "all" ? (
+            <FilterChip
+              label={`优先级：${PRIORITY_LABEL[currentQuery.priority as keyof typeof PRIORITY_LABEL] ?? currentQuery.priority}`}
+              onRemove={() => {
+                setPriority("all");
+                applyQuery({ priority: "all" });
+              }}
+            />
+          ) : null}
           {currentQuery.dateFrom || currentQuery.dateTo ? (
             <FilterChip
               label={
@@ -420,6 +497,9 @@ export function TasksView({
           <div className="flex items-center gap-3 border-b border-zinc-200 bg-zinc-50/50 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
             <span className="w-[104px] shrink-0">状态</span>
             <span className="min-w-0 flex-1">任务</span>
+            <span className="hidden w-16 shrink-0 text-right sm:inline-block">
+              截止
+            </span>
             <span className="hidden shrink-0 text-right sm:inline-block sm:w-32">
               项目
             </span>

@@ -4,7 +4,7 @@ import { TasksView } from "@/components/tasks-view";
 import { normalizeDateRange, parseYmdParam } from "@/lib/date-query";
 import { prisma } from "@/lib/db";
 import { getTasksForUser, type TaskQuery, type TaskSort } from "@/lib/tasks-data";
-import type { TaskListItem, TaskStatus } from "@/types/task";
+import type { TaskListItem, TaskPriority, TaskStatus } from "@/types/task";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -14,6 +14,17 @@ const ALLOWED_SORT: TaskSort[] = [
   "updated_asc",
   "created_desc",
   "created_asc",
+  "due_asc",
+  "due_desc",
+];
+
+const ALLOWED_PRIORITY: (TaskPriority | "all")[] = [
+  "all",
+  "none",
+  "low",
+  "medium",
+  "high",
+  "urgent",
 ];
 
 function pickFirst(value: string | string[] | undefined): string | undefined {
@@ -45,7 +56,13 @@ function parseTaskQuery(
   const rawTo = parseYmdParam(pickFirst(sp.dateTo));
   const { dateFrom, dateTo } = normalizeDateRange(rawFrom, rawTo);
 
-  return { keyword, status, projectId, sort, dateFrom, dateTo };
+  const rawPriority = pickFirst(sp.priority);
+  const priority =
+    rawPriority && ALLOWED_PRIORITY.includes(rawPriority as TaskPriority | "all")
+      ? (rawPriority as TaskQuery["priority"])
+      : undefined;
+
+  return { keyword, status, projectId, sort, dateFrom, dateTo, priority };
 }
 
 export default async function TasksPage({
@@ -76,6 +93,8 @@ export default async function TasksPage({
     title: t.title,
     description: t.description,
     status: t.status,
+    priority: t.priority,
+    dueDate: t.dueDate?.toISOString() ?? null,
     projectId: t.projectId,
     project: t.project,
   }));
@@ -91,7 +110,7 @@ export default async function TasksPage({
             我的任务
           </h1>
           <p className="mt-2 text-sm text-zinc-500">
-            关键词、状态、项目、排序与「更新时间」日期范围；条件写入 URL，刷新不丢。
+            关键词、状态、优先级、项目、排序与日期；条件写入 URL，刷新不丢。
           </p>
         </div>
         <CreateTaskSheet projects={projects} />
@@ -115,6 +134,7 @@ export default async function TasksPage({
             sort: query.sort ?? "updated_desc",
             dateFrom: query.dateFrom ?? "",
             dateTo: query.dateTo ?? "",
+            priority: (query.priority as string) ?? "all",
           }}
         />
       </Suspense>

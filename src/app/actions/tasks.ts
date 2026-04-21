@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { assertCan, can } from '@/lib/acl'
+import { dueDateFromYmd } from '@/lib/due-date'
 import { createTaskSchema, updateTaskSchema } from '@/lib/validations/task'
+import type { TaskPriority } from '@/types/task'
 
 function revalidateTaskViews(projectId?: string | null) {
 	revalidatePath('/tasks')
@@ -13,6 +15,17 @@ function revalidateTaskViews(projectId?: string | null) {
 	if (projectId) {
 		revalidatePath(`/projects/${projectId}`)
 	}
+}
+
+function parseDueForUpdate(
+	raw: FormDataEntryValue | null
+): Date | null | undefined {
+	if (raw === null) return undefined
+	if (typeof raw !== 'string') return undefined
+	const t = raw.trim()
+	if (t === '') return null
+	const d = dueDateFromYmd(t)
+	return d === null ? undefined : d
 }
 
 export async function createTaskAction(formData: FormData) {
@@ -26,6 +39,8 @@ export async function createTaskAction(formData: FormData) {
 		title: formData.get('title'),
 		description: formData.get('description') ?? '',
 		status: formData.get('status') ?? undefined,
+		priority: formData.get('priority') ?? undefined,
+		dueDate: formData.get('dueDate') ?? '',
 	})
 
 	if (!parsed.success) {
@@ -35,7 +50,9 @@ export async function createTaskAction(formData: FormData) {
 		}
 	}
 
-	const { title, description, status } = parsed.data
+	const { title, description, status, priority, dueDate: dueYmd } = parsed.data
+	const dueDateResolved =
+		dueYmd && dueYmd.trim() ? (dueDateFromYmd(dueYmd) ?? null) : null
 	const projectIdRaw = formData.get('projectId')
 	const projectId =
 		typeof projectIdRaw === 'string' && projectIdRaw.length > 0
@@ -60,6 +77,8 @@ export async function createTaskAction(formData: FormData) {
 			title,
 			description: description?.trim() ? description.trim() : null,
 			status: status ?? 'todo',
+			priority: priority ?? ('none' as TaskPriority),
+			dueDate: dueDateResolved,
 			userId: userId!,
 			projectId,
 		},
@@ -114,13 +133,15 @@ export async function updateTaskAction(formData: FormData) {
 		title: formData.get('title') ?? undefined,
 		description: formData.get('description') ?? '',
 		status: formData.get('status') ?? undefined,
+		priority: formData.get('priority') ?? undefined,
+		dueDate: formData.get('dueDate') ?? '',
 	})
 
 	if (!parsed.success) {
 		return { ok: false as const, error: '校验失败' }
 	}
 
-	const { id, title, description, status } = parsed.data
+	const { id, title, description, status, priority } = parsed.data
 
 	const existing = await prisma.task.findUnique({
 		where: { id },
@@ -136,16 +157,24 @@ export async function updateTaskAction(formData: FormData) {
 	})
 	if (!gate.ok) return { ok: false as const, error: gate.error }
 
+	const dueParsed = parseDueForUpdate(formData.get('dueDate'))
+
 	const data: {
 		title?: string
 		description?: string | null
 		status?: 'todo' | 'doing' | 'done'
+		priority?: TaskPriority
+		dueDate?: Date | null
 	} = {}
 	if (title !== undefined) data.title = title
 	if (description !== undefined) {
 		data.description = description.trim() ? description.trim() : null
 	}
 	if (status !== undefined) data.status = status
+	if (priority !== undefined) data.priority = priority
+	if (dueParsed !== undefined) {
+		data.dueDate = dueParsed
+	}
 
 	await prisma.task.update({
 		where: { id },

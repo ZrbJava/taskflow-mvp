@@ -28,7 +28,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import type { TaskListItem, TaskStatus } from "@/types/task";
+import { dueDateToYmd } from "@/lib/due-date";
+import { PRIORITY_LABEL } from "@/lib/task-priority";
+import type { TaskListItem, TaskPriority, TaskStatus } from "@/types/task";
 
 interface TaskDetailSheetProps {
   task: TaskListItem;
@@ -52,6 +54,8 @@ export function TaskDetailSheet({
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [status, setStatus] = useState<TaskStatus>(task.status);
+  const [priority, setPriority] = useState<TaskPriority>(task.priority);
+  const [dueYmd, setDueYmd] = useState(() => dueDateToYmd(task.dueDate));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,14 +63,26 @@ export function TaskDetailSheet({
       setTitle(task.title);
       setDescription(task.description ?? "");
       setStatus(task.status);
+      setPriority(task.priority);
+      setDueYmd(dueDateToYmd(task.dueDate));
       setError(null);
     }
-  }, [open, task.id, task.title, task.description, task.status]);
+  }, [
+    open,
+    task.id,
+    task.title,
+    task.description,
+    task.status,
+    task.priority,
+    task.dueDate,
+  ]);
 
   const dirty =
     title.trim() !== task.title ||
     (description.trim() || null) !== (task.description ?? null) ||
-    status !== task.status;
+    status !== task.status ||
+    priority !== task.priority ||
+    dueYmd !== dueDateToYmd(task.dueDate);
 
   const onStatusChange = (value: string) => {
     const next = value as TaskStatus;
@@ -91,6 +107,8 @@ export function TaskDetailSheet({
       fd.set("title", title);
       fd.set("description", description);
       fd.set("status", status);
+      fd.set("priority", priority);
+      fd.set("dueDate", dueYmd);
       const res = await updateTaskAction(fd);
       if (!res.ok) {
         setError(res.error);
@@ -176,17 +194,55 @@ export function TaskDetailSheet({
                 </SelectContent>
               </Select>
             </div>
-            {task.project ? (
-              <div>
-                <label className="text-xs font-medium text-zinc-500">
-                  所属项目
-                </label>
-                <div className="mt-1 inline-flex h-10 w-full items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-700">
-                  {task.project.name}
-                </div>
-              </div>
-            ) : null}
+            <div>
+              <label className="text-xs font-medium text-zinc-500">优先级</label>
+              <Select
+                value={priority}
+                onValueChange={(v) => setPriority(v as TaskPriority)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PRIORITY_LABEL) as TaskPriority[]).map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {PRIORITY_LABEL[p]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          <div>
+            <label
+              className="text-xs font-medium text-zinc-500"
+              htmlFor="detail-due"
+            >
+              截止日期
+            </label>
+            <Input
+              id="detail-due"
+              type="date"
+              className="mt-1"
+              value={dueYmd}
+              onChange={(e) => setDueYmd(e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-zinc-400">
+              留空表示不设截止日；保存时写入。
+            </p>
+          </div>
+
+          {task.project ? (
+            <div>
+              <label className="text-xs font-medium text-zinc-500">
+                所属项目
+              </label>
+              <div className="mt-1 inline-flex h-10 w-full items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-700">
+                {task.project.name}
+              </div>
+            </div>
+          ) : null}
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

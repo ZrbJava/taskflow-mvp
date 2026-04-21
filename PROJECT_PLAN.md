@@ -214,4 +214,7 @@
 - [x] Vitest 覆盖 ACL 规则（8 项通过）
 - [x] 对标 Linear：`dateFrom`/`dateTo` + 筛选 Chips + `@@index([userId, updatedAt])`
 - [x] Vitest：`date-query` 日历与区间（parse / normalize / filter）
+- [x] 任务优先级（`TaskPriority`）+ 截止日期（`dueDate`），列表/详情/新建/命令面板展示，URL `priority=` 筛选，排序 `due_asc` / `due_desc`
+- [x] `/tasks` 快捷键 `C`：打开新建任务 Sheet 并保留当前筛选参数
+- [x] Prisma 索引：`@@index([userId, dueDate])`
 

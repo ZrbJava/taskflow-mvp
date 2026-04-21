@@ -1,10 +1,15 @@
 export type TaskStatus = "todo" | "doing" | "done";
 
+export type TaskPriority = "none" | "low" | "medium" | "high" | "urgent";
+
 export interface TaskListItem {
   id: string;
   title: string;
   description: string | null;
   status: TaskStatus;
+  priority: TaskPriority;
+  /** ISO 字符串，便于 RSC → Client 传递 */
+  dueDate: string | null;
   projectId: string | null;
   project: { id: string; name: string } | null;
 }
@@ -14,5 +19,7 @@ export type TaskPaletteHit = {
   id: string;
   title: string;
   status: TaskStatus;
+  priority: TaskPriority;
+  dueDate: string | null;
   project: { id: string; name: string } | null;
 };

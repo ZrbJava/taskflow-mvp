@@ -43,6 +43,8 @@ export function TaskForm({
       title: "",
       description: "",
       status: "todo",
+      priority: "none" as const,
+      dueDate: "",
     },
   });
 
@@ -52,6 +54,8 @@ export function TaskForm({
       fd.set("title", values.title);
       fd.set("description", values.description ?? "");
       if (values.status) fd.set("status", values.status);
+      fd.set("priority", values.priority ?? "none");
+      if (values.dueDate) fd.set("dueDate", values.dueDate);
       if (defaultProjectId) {
         fd.set("projectId", defaultProjectId);
       } else if (projectId) {
@@ -115,6 +119,35 @@ export function TaskForm({
               <option value="done">已完成</option>
             </select>
           </div>
+          <div>
+            <label className="text-sm text-zinc-600" htmlFor="priority">
+              优先级
+            </label>
+            <select
+              id="priority"
+              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm"
+              {...form.register("priority")}
+            >
+              <option value="none">无</option>
+              <option value="low">低</option>
+              <option value="medium">中</option>
+              <option value="high">高</option>
+              <option value="urgent">紧急</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="text-sm text-zinc-600" htmlFor="dueDate">
+            截止日期（可选）
+          </label>
+          <Input
+            id="dueDate"
+            type="date"
+            className="mt-1"
+            {...form.register("dueDate")}
+          />
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
           {projects.length > 0 && !defaultProjectId ? (
             <div>
               <label className="text-sm text-zinc-600" htmlFor="projectId">

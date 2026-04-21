@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TaskDetailSheet } from "@/components/task-detail-sheet";
+import { PRIORITY_BADGE_CLASS, PRIORITY_LABEL } from "@/lib/task-priority";
 import type { TaskListItem, TaskStatus } from "@/types/task";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -36,6 +37,23 @@ const statusColor: Record<TaskStatus, string> = {
   doing: "text-amber-500",
   done: "text-emerald-600",
 };
+
+function formatDueShort(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+}
+
+function isDueOverdue(iso: string, status: TaskStatus): boolean {
+  if (status === "done") return false;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  const d0 = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  const t0 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return d0 < t0;
+}
 
 function StatusIcon({
   status,
@@ -125,20 +143,45 @@ export function TaskRow({
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="min-w-0 flex-1 cursor-pointer text-left"
+          className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-left"
         >
-          <div className="truncate text-sm font-medium text-zinc-900 transition group-hover:text-violet-700">
-            {task.title}
-          </div>
-          {task.description ? (
-            <p className="mt-0.5 truncate text-xs text-zinc-500">
-              {task.description}
-            </p>
+          {task.priority !== "none" ? (
+            <span
+              className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_BADGE_CLASS[task.priority]}`}
+            >
+              {PRIORITY_LABEL[task.priority]}
+            </span>
           ) : null}
+          <span className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium text-zinc-900 transition group-hover:text-violet-700">
+              {task.title}
+            </div>
+            {task.description ? (
+              <p className="mt-0.5 truncate text-xs text-zinc-500">
+                {task.description}
+              </p>
+            ) : null}
+          </span>
         </button>
 
+        <span className="hidden w-16 shrink-0 text-right text-xs sm:inline-block">
+          {formatDueShort(task.dueDate) ? (
+            <span
+              className={
+                task.dueDate && isDueOverdue(task.dueDate, task.status)
+                  ? "font-medium text-red-600"
+                  : "text-zinc-500"
+              }
+            >
+              {formatDueShort(task.dueDate)}
+            </span>
+          ) : (
+            <span className="text-zinc-300">—</span>
+          )}
+        </span>
+
         {task.project ? (
-          <span className="hidden shrink-0 text-xs text-zinc-500 sm:inline">
+          <span className="hidden shrink-0 text-xs text-zinc-500 sm:inline sm:w-32 sm:text-right">
             {task.project.name}
           </span>
         ) : null}

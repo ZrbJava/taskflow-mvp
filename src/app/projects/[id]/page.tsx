@@ -48,6 +48,8 @@ export default async function ProjectDetailPage({
     title: t.title,
     description: t.description,
     status: t.status,
+    priority: t.priority,
+    dueDate: t.dueDate?.toISOString() ?? null,
     projectId: t.projectId,
     project: t.project,
   }));
@@ -82,6 +84,7 @@ export default async function ProjectDetailPage({
           sort: "updated_desc",
           dateFrom: "",
           dateTo: "",
+          priority: "all",
         }}
       />
     </main>

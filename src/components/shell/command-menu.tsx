@@ -21,6 +21,7 @@ import {
 	DialogDescription,
 	DialogTitle,
 } from '@/components/ui/dialog'
+import { PRIORITY_LABEL } from '@/lib/task-priority'
 import type { TaskPaletteHit } from '@/types/task'
 
 interface SidebarProject {
@@ -173,8 +174,24 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 													<Search className='h-4 w-4 text-violet-500' />
 												}
 												right={
-													<span className='flex shrink-0 items-center gap-2 text-[11px] text-zinc-400'>
+													<span className='flex max-w-[11rem] shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-[11px] text-zinc-400'>
+														{t.priority !== 'none' ? (
+															<span className='text-violet-600'>
+																{PRIORITY_LABEL[t.priority]}
+															</span>
+														) : null}
 														<span>{STATUS_LABEL[t.status]}</span>
+														{t.dueDate ? (
+															<span className='font-mono text-zinc-500'>
+																{new Date(t.dueDate).toLocaleDateString(
+																	'zh-CN',
+																	{
+																		month: 'numeric',
+																		day: 'numeric',
+																	},
+																)}
+															</span>
+														) : null}
 														{t.project ? (
 															<span className='max-w-[7rem] truncate'>
 																{t.project.name}
