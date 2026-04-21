@@ -2,16 +2,25 @@ import { auth } from '@/auth'
 import { CreateTaskSheet } from '@/components/create-task-sheet'
 import { TasksView } from '@/components/tasks-view'
 import { can } from '@/lib/acl'
+import {
+	parseTasksTaskQuery,
+	parseViewMode,
+	pickFirst,
+} from '@/lib/parse-tasks-url'
 import { prisma } from '@/lib/db'
+import { getTasksForUser } from '@/lib/tasks-data'
 import type { TaskListItem } from '@/types/task'
+import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
 interface ProjectDetailPageProps {
 	params: Promise<{ id: string }>
+	searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
 export default async function ProjectDetailPage({
 	params,
+	searchParams,
 }: ProjectDetailPageProps) {
 	const session = await auth()
 	if (!session?.user?.id) {
@@ -19,6 +28,7 @@ export default async function ProjectDetailPage({
 	}
 
 	const { id } = await params
+	const sp = await searchParams
 
 	const project = await prisma.project.findUnique({
 		where: { id },
@@ -37,10 +47,14 @@ export default async function ProjectDetailPage({
 		notFound()
 	}
 
-	const rows = await prisma.task.findMany({
-		where: { projectId: id, userId: session.user.id },
-		orderBy: { updatedAt: 'desc' },
-		include: { project: { select: { id: true, name: true } } },
+	const query = parseTasksTaskQuery(sp)
+	const view = parseViewMode(sp)
+	const rawTaskId = pickFirst(sp.taskId)?.trim()
+	const openTaskId = rawTaskId && rawTaskId.length > 0 ? rawTaskId : undefined
+
+	const rows = await getTasksForUser(session.user.id, {
+		...query,
+		projectId: id,
 	})
 
 	const tasks: TaskListItem[] = rows.map(t => ({
@@ -56,8 +70,8 @@ export default async function ProjectDetailPage({
 	}))
 
 	return (
-		<main className='mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-12'>
-			<section className='flex items-start justify-between gap-4'>
+		<main className='mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6'>
+			<section className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
 				<div>
 					<p className='font-mono text-xs uppercase tracking-wider text-zinc-400'>
 						Project
@@ -66,7 +80,15 @@ export default async function ProjectDetailPage({
 						{project.name}
 					</h1>
 					<p className='mt-2 text-sm text-zinc-500'>
-						仅项目所有者可访问；任务列表同样按用户隔离。
+						与「我的任务」相同的筛选与列表/看板视图；条件写入 URL，仅本项目数据。
+					</p>
+					<p className='mt-2 text-xs text-zinc-400'>
+						<Link
+							href='/tasks'
+							className='font-medium text-violet-600 hover:text-violet-700'
+						>
+							← 全部任务
+						</Link>
 					</p>
 				</div>
 				<CreateTaskSheet
@@ -78,15 +100,16 @@ export default async function ProjectDetailPage({
 			<TasksView
 				tasks={tasks}
 				projects={[{ id: project.id, name: project.name }]}
+				openTaskId={openTaskId}
 				currentQuery={{
-					keyword: '',
-					status: 'all',
-					projectId: project.id,
-					sort: 'updated_desc',
-					dateFrom: '',
-					dateTo: '',
-					priority: 'all',
-					view: 'list',
+					keyword: query.keyword ?? '',
+					status: (query.status as string) ?? 'all',
+					projectId: id,
+					sort: query.sort ?? 'updated_desc',
+					dateFrom: query.dateFrom ?? '',
+					dateTo: query.dateTo ?? '',
+					priority: (query.priority as string) ?? 'all',
+					view,
 				}}
 			/>
 		</main>

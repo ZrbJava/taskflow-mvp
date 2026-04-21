@@ -48,7 +48,7 @@ interface CurrentQuery {
 	dateFrom: string
 	dateTo: string
 	priority: string
-	/** 仅 `/tasks`：`list` | `board` */
+	/** `list` | `board`（`/tasks` 与 `/projects/[id]` 均支持） */
 	view: 'list' | 'board'
 }
 
@@ -102,6 +102,12 @@ export function TasksView({
 	const searchParams = useSearchParams()
 	const [pending, startTransition] = useTransition()
 
+	const navigateBasePath =
+		pathname.match(/^\/projects\/[^/]+/)?.[0] ?? '/tasks'
+	const projectScopedId =
+		pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null
+	const isTaskHub = pathname === '/tasks' || projectScopedId !== null
+
 	const stripTaskIdFromUrl = () => {
 		if (!searchParams.get('taskId')) return
 		const next = new URLSearchParams(searchParams.toString())
@@ -150,7 +156,7 @@ export function TasksView({
 			const merged: Record<string, string> = {
 				keyword,
 				status,
-				projectId,
+				projectId: projectScopedId ?? projectId,
 				sort,
 				dateFrom,
 				dateTo,
@@ -158,15 +164,19 @@ export function TasksView({
 				view,
 				...next,
 			}
+			if (projectScopedId) {
+				merged.projectId = projectScopedId
+			}
 			const qs = buildQueryString(merged)
 			startTransition(() => {
-				router.push(`/tasks${qs}`)
+				router.push(`${navigateBasePath}${qs}`)
 			})
 		},
 		[
 			keyword,
 			status,
 			projectId,
+			projectScopedId,
 			sort,
 			dateFrom,
 			dateTo,
@@ -174,12 +184,13 @@ export function TasksView({
 			view,
 			router,
 			startTransition,
+			navigateBasePath,
 		]
 	)
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if (pathname !== '/tasks') return
+			if (!isTaskHub) return
 			const el = e.target as HTMLElement | null
 			if (!el) return
 			const inField =
@@ -204,7 +215,9 @@ export function TasksView({
 				next.set('compose', '1')
 				const q = next.toString()
 				startTransition(() => {
-					router.push(q ? `/tasks?${q}` : '/tasks?compose=1')
+					router.push(
+						q ? `${navigateBasePath}?${q}` : `${navigateBasePath}?compose=1`
+					)
 				})
 				return
 			}
@@ -218,7 +231,15 @@ export function TasksView({
 		}
 		window.addEventListener('keydown', onKey)
 		return () => window.removeEventListener('keydown', onKey)
-	}, [pathname, router, searchParams, view, applyQuery, startTransition])
+	}, [
+		isTaskHub,
+		router,
+		searchParams,
+		view,
+		applyQuery,
+		startTransition,
+		navigateBasePath,
+	])
 
 	const onKeywordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
@@ -228,14 +249,14 @@ export function TasksView({
 	const resetAll = () => {
 		setKeyword('')
 		setStatus('all')
-		setProjectId('all')
+		setProjectId(projectScopedId ?? 'all')
 		setSort('updated_desc')
 		setDateFrom('')
 		setDateTo('')
 		setPriority('all')
 		setView('list')
 		startTransition(() => {
-			router.push('/tasks')
+			router.push(navigateBasePath)
 		})
 	}
 
@@ -255,13 +276,13 @@ export function TasksView({
 
 	const hasActiveFilters =
 		status !== 'all' ||
-		projectId !== 'all' ||
+		(!projectScopedId && projectId !== 'all') ||
 		(currentQuery.keyword && currentQuery.keyword.length > 0) ||
 		sort !== 'updated_desc' ||
 		Boolean(currentQuery.dateFrom) ||
 		Boolean(currentQuery.dateTo) ||
 		currentQuery.priority !== 'all' ||
-		(pathname === '/tasks' && currentQuery.view === 'board')
+		(isTaskHub && currentQuery.view === 'board')
 
 	const sortLabel =
 		SORT_OPTIONS.find(o => o.value === currentQuery.sort)?.label ?? '最近更新'
@@ -286,7 +307,7 @@ export function TasksView({
 						</p>
 					</div>
 					<div className='flex flex-wrap items-center gap-2'>
-						{pathname === '/tasks' ? (
+						{isTaskHub ? (
 							<div className='flex rounded-lg border border-zinc-200 bg-zinc-100/80 p-0.5'>
 								<button
 									type='button'
@@ -352,25 +373,36 @@ export function TasksView({
 						/>
 					</label>
 
-					<Select
-						value={projectId}
-						onValueChange={value => {
-							setProjectId(value)
-							applyQuery({ projectId: value })
-						}}
-					>
-						<SelectTrigger>
-							<SelectValue placeholder='选择项目' />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value='all'>全部项目</SelectItem>
-							{projects.map(project => (
-								<SelectItem key={project.id} value={project.id}>
-									{project.name}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					{projectScopedId ? (
+						<div className='flex h-10 items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-600'>
+							<span className='truncate'>
+								本项目 ·{' '}
+								<span className='font-medium text-zinc-800'>
+									{projects[0]?.name ?? '—'}
+								</span>
+							</span>
+						</div>
+					) : (
+						<Select
+							value={projectId}
+							onValueChange={value => {
+								setProjectId(value)
+								applyQuery({ projectId: value })
+							}}
+						>
+							<SelectTrigger>
+								<SelectValue placeholder='选择项目' />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value='all'>全部项目</SelectItem>
+								{projects.map(project => (
+									<SelectItem key={project.id} value={project.id}>
+										{project.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					)}
 
 					<Select
 						value={sort}
@@ -503,7 +535,7 @@ export function TasksView({
 						</PopoverContent>
 					</Popover>
 				</form>
-				{pathname === '/tasks' ? (
+				{isTaskHub ? (
 					<p className='mt-3 text-xs text-zinc-400'>
 						快捷键：
 						<kbd className='mx-0.5 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600'>
@@ -545,7 +577,9 @@ export function TasksView({
 							}}
 						/>
 					) : null}
-					{currentQuery.projectId !== 'all' && projectLabel ? (
+					{!projectScopedId &&
+					currentQuery.projectId !== 'all' &&
+					projectLabel ? (
 						<FilterChip
 							label={`项目：${projectLabel}`}
 							onRemove={() => {
@@ -586,7 +620,7 @@ export function TasksView({
 							}}
 						/>
 					) : null}
-					{pathname === '/tasks' && currentQuery.view === 'board' ? (
+					{isTaskHub && currentQuery.view === 'board' ? (
 						<FilterChip
 							label='视图：看板'
 							onRemove={() => {
@@ -602,7 +636,7 @@ export function TasksView({
 				<p className='rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500'>
 					当前筛选下没有任务。
 				</p>
-			) : pathname === '/tasks' && view === 'board' ? (
+			) : isTaskHub && view === 'board' ? (
 				<TasksBoard
 					tasks={tasks}
 					openTaskId={openTaskId}

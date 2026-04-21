@@ -1,75 +1,16 @@
 import { auth } from '@/auth'
 import { CreateTaskSheet } from '@/components/create-task-sheet'
 import { TasksView } from '@/components/tasks-view'
-import { normalizeDateRange, parseYmdParam } from '@/lib/date-query'
-import { prisma } from '@/lib/db'
 import {
-	getTasksForUser,
-	type TaskQuery,
-	type TaskSort,
-} from '@/lib/tasks-data'
-import type { TaskListItem, TaskPriority, TaskStatus } from '@/types/task'
+	parseTasksTaskQuery,
+	parseViewMode,
+	pickFirst,
+} from '@/lib/parse-tasks-url'
+import { prisma } from '@/lib/db'
+import { getTasksForUser } from '@/lib/tasks-data'
+import type { TaskListItem } from '@/types/task'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-
-const ALLOWED_STATUS: TaskStatus[] = ['todo', 'doing', 'done']
-const ALLOWED_SORT: TaskSort[] = [
-	'updated_desc',
-	'updated_asc',
-	'created_desc',
-	'created_asc',
-	'due_asc',
-	'due_desc',
-]
-
-const ALLOWED_PRIORITY: (TaskPriority | 'all')[] = [
-	'all',
-	'none',
-	'low',
-	'medium',
-	'high',
-	'urgent',
-]
-
-function pickFirst(value: string | string[] | undefined): string | undefined {
-	if (Array.isArray(value)) return value[0]
-	return value
-}
-
-function parseTaskQuery(
-	sp: Record<string, string | string[] | undefined>
-): TaskQuery {
-	const keyword = pickFirst(sp.keyword)?.trim() || undefined
-
-	const rawStatus = pickFirst(sp.status)
-	const status =
-		rawStatus === 'all' ||
-		(rawStatus && ALLOWED_STATUS.includes(rawStatus as TaskStatus))
-			? (rawStatus as TaskQuery['status'])
-			: undefined
-
-	const rawProject = pickFirst(sp.projectId)
-	const projectId = rawProject ? rawProject : undefined
-
-	const rawSort = pickFirst(sp.sort)
-	const sort =
-		rawSort && ALLOWED_SORT.includes(rawSort as TaskSort)
-			? (rawSort as TaskSort)
-			: undefined
-
-	const rawFrom = parseYmdParam(pickFirst(sp.dateFrom))
-	const rawTo = parseYmdParam(pickFirst(sp.dateTo))
-	const { dateFrom, dateTo } = normalizeDateRange(rawFrom, rawTo)
-
-	const rawPriority = pickFirst(sp.priority)
-	const priority =
-		rawPriority &&
-		ALLOWED_PRIORITY.includes(rawPriority as TaskPriority | 'all')
-			? (rawPriority as TaskQuery['priority'])
-			: undefined
-
-	return { keyword, status, projectId, sort, dateFrom, dateTo, priority }
-}
 
 export default async function TasksPage({
 	searchParams,
@@ -82,12 +23,11 @@ export default async function TasksPage({
 	}
 
 	const sp = await searchParams
-	const query = parseTaskQuery(sp)
+	const query = parseTasksTaskQuery(sp)
 	const rawTaskId = pickFirst(sp.taskId)?.trim()
 	const openTaskId = rawTaskId && rawTaskId.length > 0 ? rawTaskId : undefined
 
-	const rawView = pickFirst(sp.view)
-	const view = rawView === 'board' ? ('board' as const) : ('list' as const)
+	const view = parseViewMode(sp)
 
 	const [raw, projects] = await Promise.all([
 		getTasksForUser(session.user.id, query),
