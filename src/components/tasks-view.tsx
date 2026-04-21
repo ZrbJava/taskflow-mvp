@@ -1,8 +1,9 @@
 "use client";
 
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { CalendarRange, Search, SlidersHorizontal, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { utcTodayYmd, utcYmdDaysAgo } from "@/lib/date-query";
 import type { TaskListItem } from "@/types/task";
 import {
   TaskStatusFilter,
@@ -31,6 +32,8 @@ interface CurrentQuery {
   status: string;
   projectId: string;
   sort: string;
+  dateFrom: string;
+  dateTo: string;
 }
 
 interface TasksViewProps {
@@ -48,6 +51,12 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "created_asc", label: "最早创建" },
 ];
 
+const STATUS_CHIP: Record<string, string> = {
+  todo: "待处理",
+  doing: "进行中",
+  done: "已完成",
+};
+
 function buildQueryString(params: Record<string, string>): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -55,6 +64,7 @@ function buildQueryString(params: Record<string, string>): string {
     if (key === "status" && value === "all") return;
     if (key === "projectId" && value === "all") return;
     if (key === "sort" && value === "updated_desc") return;
+    if ((key === "dateFrom" || key === "dateTo") && !value) return;
     search.set(key, value);
   });
   const qs = search.toString();
@@ -86,13 +96,24 @@ export function TasksView({
   );
   const [projectId, setProjectId] = useState(currentQuery.projectId || "all");
   const [sort, setSort] = useState(currentQuery.sort || "updated_desc");
+  const [dateFrom, setDateFrom] = useState(currentQuery.dateFrom || "");
+  const [dateTo, setDateTo] = useState(currentQuery.dateTo || "");
 
   useEffect(() => {
     setKeyword(currentQuery.keyword);
     setStatus((currentQuery.status as TaskFilterValue) || "all");
     setProjectId(currentQuery.projectId || "all");
     setSort(currentQuery.sort || "updated_desc");
-  }, [currentQuery.keyword, currentQuery.status, currentQuery.projectId, currentQuery.sort]);
+    setDateFrom(currentQuery.dateFrom || "");
+    setDateTo(currentQuery.dateTo || "");
+  }, [
+    currentQuery.keyword,
+    currentQuery.status,
+    currentQuery.projectId,
+    currentQuery.sort,
+    currentQuery.dateFrom,
+    currentQuery.dateTo,
+  ]);
 
   const applyQuery = (next: Partial<CurrentQuery>) => {
     const merged: Record<string, string> = {
@@ -100,6 +121,8 @@ export function TasksView({
       status,
       projectId,
       sort,
+      dateFrom,
+      dateTo,
       ...next,
     };
     const qs = buildQueryString(merged);
@@ -118,16 +141,42 @@ export function TasksView({
     setStatus("all");
     setProjectId("all");
     setSort("updated_desc");
+    setDateFrom("");
+    setDateTo("");
     startTransition(() => {
       router.push("/tasks");
     });
+  };
+
+  const applyPresetDays = (days: number) => {
+    const to = utcTodayYmd();
+    const from = utcYmdDaysAgo(days - 1);
+    setDateFrom(from);
+    setDateTo(to);
+    applyQuery({ dateFrom: from, dateTo: to });
+  };
+
+  const clearDateRange = () => {
+    setDateFrom("");
+    setDateTo("");
+    applyQuery({ dateFrom: "", dateTo: "" });
   };
 
   const hasActiveFilters =
     status !== "all" ||
     projectId !== "all" ||
     (currentQuery.keyword && currentQuery.keyword.length > 0) ||
-    sort !== "updated_desc";
+    sort !== "updated_desc" ||
+    Boolean(currentQuery.dateFrom) ||
+    Boolean(currentQuery.dateTo);
+
+  const sortLabel =
+    SORT_OPTIONS.find((o) => o.value === currentQuery.sort)?.label ?? "最近更新";
+
+  const projectLabel =
+    currentQuery.projectId !== "all"
+      ? projects.find((p) => p.id === currentQuery.projectId)?.name
+      : undefined;
 
   return (
     <div className="space-y-4">
@@ -139,7 +188,7 @@ export function TasksView({
               <Badge variant="secondary">服务端筛选</Badge>
             </div>
             <p className="mt-1 text-sm text-zinc-500">
-              关键词、状态、项目、排序都走 URL 参数，刷新后依旧保留。
+              对标 Linear：高密度列表 + 可分享 URL；「更新日期」按任务最近更新时间过滤。
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -220,12 +269,11 @@ export function TasksView({
                 className="justify-center gap-2 rounded-lg px-4"
               >
                 <SlidersHorizontal className="h-4 w-4" />
-                状态筛选
+                筛选
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end">
-              <p className="text-sm font-medium text-zinc-800">按状态筛选</p>
-              <p className="mt-1 text-xs text-zinc-500">后续这里会继续扩展日期和更多条件。</p>
+            <PopoverContent align="end" className="w-[min(100vw-2rem,22rem)]">
+              <p className="text-sm font-medium text-zinc-800">状态</p>
               <div className="mt-3">
                 <TaskStatusFilter
                   value={status}
@@ -235,10 +283,133 @@ export function TasksView({
                   }}
                 />
               </div>
+
+              <div className="mt-5 border-t border-zinc-100 pt-4">
+                <p className="flex items-center gap-2 text-sm font-medium text-zinc-800">
+                  <CalendarRange className="h-4 w-4 text-zinc-500" />
+                  更新日期
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  按 <span className="font-medium text-zinc-600">updatedAt</span>{" "}
+                  落在区间内筛选（UTC 日界）。
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-8 rounded-md px-2.5 text-xs"
+                    onClick={() => applyPresetDays(7)}
+                  >
+                    近 7 天
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-8 rounded-md px-2.5 text-xs"
+                    onClick={() => applyPresetDays(30)}
+                  >
+                    近 30 天
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-8 rounded-md px-2.5 text-xs text-zinc-600"
+                    onClick={clearDateRange}
+                  >
+                    清除日期
+                  </Button>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <label className="block text-xs font-medium text-zinc-600">
+                    从
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDateFrom(v);
+                        applyQuery({ dateFrom: v });
+                      }}
+                      className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-zinc-600">
+                    到
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDateTo(v);
+                        applyQuery({ dateTo: v });
+                      }}
+                      className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30"
+                    />
+                  </label>
+                </div>
+              </div>
             </PopoverContent>
           </Popover>
         </form>
       </div>
+
+      {hasActiveFilters ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+            筛选
+          </span>
+          {currentQuery.keyword ? (
+            <FilterChip
+              label={`关键词：${currentQuery.keyword}`}
+              onRemove={() => {
+                setKeyword("");
+                applyQuery({ keyword: "" });
+              }}
+            />
+          ) : null}
+          {currentQuery.status !== "all" ? (
+            <FilterChip
+              label={`状态：${STATUS_CHIP[currentQuery.status] ?? currentQuery.status}`}
+              onRemove={() => {
+                setStatus("all");
+                applyQuery({ status: "all" });
+              }}
+            />
+          ) : null}
+          {currentQuery.projectId !== "all" && projectLabel ? (
+            <FilterChip
+              label={`项目：${projectLabel}`}
+              onRemove={() => {
+                setProjectId("all");
+                applyQuery({ projectId: "all" });
+              }}
+            />
+          ) : null}
+          {currentQuery.sort !== "updated_desc" ? (
+            <FilterChip
+              label={`排序：${sortLabel}`}
+              onRemove={() => {
+                setSort("updated_desc");
+                applyQuery({ sort: "updated_desc" });
+              }}
+            />
+          ) : null}
+          {currentQuery.dateFrom || currentQuery.dateTo ? (
+            <FilterChip
+              label={
+                currentQuery.dateFrom && currentQuery.dateTo
+                  ? `更新：${currentQuery.dateFrom} — ${currentQuery.dateTo}`
+                  : currentQuery.dateFrom
+                    ? `更新 ≥ ${currentQuery.dateFrom}`
+                    : `更新 ≤ ${currentQuery.dateTo}`
+              }
+              onRemove={() => {
+                clearDateRange();
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       {tasks.length === 0 ? (
         <p className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500">
@@ -270,5 +441,27 @@ export function TasksView({
         </div>
       )}
     </div>
+  );
+}
+
+function FilterChip({
+  label,
+  onRemove,
+}: {
+  label: string;
+  onRemove: () => void;
+}) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-violet-200/80 bg-violet-50/80 px-2.5 py-1 text-xs text-zinc-800">
+      <span className="min-w-0 truncate">{label}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="shrink-0 rounded p-0.5 text-zinc-500 transition hover:bg-violet-100 hover:text-zinc-900"
+        aria-label="移除此筛选条件"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </span>
   );
 }

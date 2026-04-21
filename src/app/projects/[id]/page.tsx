@@ -80,6 +80,8 @@ export default async function ProjectDetailPage({
           status: "all",
           projectId: project.id,
           sort: "updated_desc",
+          dateFrom: "",
+          dateTo: "",
         }}
       />
     </main>

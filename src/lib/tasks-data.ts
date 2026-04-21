@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { updatedAtFilterFromQuery } from "@/lib/date-query";
 import type { Prisma } from "@prisma/client";
 import type { TaskPaletteHit, TaskStatus } from "@/types/task";
 
@@ -13,6 +14,9 @@ export interface TaskQuery {
   status?: TaskStatus | "all";
   projectId?: string | "all";
   sort?: TaskSort;
+  /** YYYY-MM-DD，按任务 `updatedAt`（UTC 日界） */
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 function buildOrderBy(sort: TaskSort = "updated_desc"): Prisma.TaskOrderByWithRelationInput {
@@ -30,7 +34,7 @@ function buildOrderBy(sort: TaskSort = "updated_desc"): Prisma.TaskOrderByWithRe
 }
 
 export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
-  const { keyword, status, projectId, sort } = query;
+  const { keyword, status, projectId, sort, dateFrom, dateTo } = query;
 
   const where: Prisma.TaskWhereInput = { userId };
 
@@ -40,6 +44,11 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
 
   if (projectId && projectId !== "all") {
     where.projectId = projectId;
+  }
+
+  const dateFilter = updatedAtFilterFromQuery(dateFrom, dateTo);
+  if (dateFilter) {
+    where.updatedAt = dateFilter;
   }
 
   const trimmed = keyword?.trim();

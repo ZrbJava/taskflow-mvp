@@ -46,4 +46,6 @@ model Task {
   project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  @@index([userId, updatedAt])
 }

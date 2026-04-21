@@ -21,7 +21,7 @@
 
 ## 本周重点
 
-- [~] `P0` 完成任务高级搜索与筛选第一版（后端+URL+UI 已完成，剩日期筛选）
+- [x] `P0` 完成任务高级搜索与筛选第一版（含按更新时间日期范围 + 筛选标签）
 - [~] `P0` 引入更适合 SaaS 风格的 UI 组件体系（App Shell 已上，持续补组件）
 - [ ] `P1` 新增 1-2 个可展示模块/页面
 - [x] `P1` 梳理并落地 ACL 权限设计第一版
@@ -78,11 +78,11 @@
 - [x] `P0` 设计筛选参数：`keyword`
 - [x] `P0` 设计筛选参数：`status`
 - [x] `P0` 设计筛选参数：`projectId`
-- [ ] `P0` 设计筛选参数：`dateFrom`
-- [ ] `P0` 设计筛选参数：`dateTo`
+- [x] `P0` 设计筛选参数：`dateFrom`
+- [x] `P0` 设计筛选参数：`dateTo`
 - [x] `P0` 设计排序参数：`sort`
 - [x] `P0` 抽离统一服务端查询函数
-- [ ] `P1` 为查询补充 Prisma 索引
+- [x] `P1` 为查询补充 Prisma 索引（`Task.userId + updatedAt`）
 
 ### 前端交互
 
@@ -90,11 +90,11 @@
 - [x] `P0` 支持关键词搜索
 - [x] `P0` 支持状态筛选
 - [x] `P0` 支持项目筛选
-- [ ] `P1` 支持日期范围筛选
+- [x] `P1` 支持日期范围筛选（按 `updatedAt`，UTC 日界；快捷：近 7 / 30 天）
 - [x] `P1` 支持 URL 参数同步
 - [x] `P1` 支持刷新后保留筛选状态
 - [x] `P1` 增加“清空筛选”
-- [ ] `P2` 增加“当前筛选条件标签”
+- [x] `P2` 增加“当前筛选条件标签”（可单独移除）
 
 ---
 
@@ -212,4 +212,6 @@
 - [x] Sidebar + CommandMenu 新增 Insights 入口
 - [x] ACL 第一版：`can()` / `assertCan()`，覆盖 Server Actions 与页面鉴权
 - [x] Vitest 覆盖 ACL 规则（8 项通过）
+- [x] 对标 Linear：`dateFrom`/`dateTo` + 筛选 Chips + `@@index([userId, updatedAt])`
+- [x] Vitest：`date-query` 日历与区间（parse / normalize / filter）
 

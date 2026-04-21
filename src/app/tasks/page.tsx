@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { CreateTaskSheet } from "@/components/create-task-sheet";
 import { TasksView } from "@/components/tasks-view";
+import { normalizeDateRange, parseYmdParam } from "@/lib/date-query";
 import { prisma } from "@/lib/db";
 import { getTasksForUser, type TaskQuery, type TaskSort } from "@/lib/tasks-data";
 import type { TaskListItem, TaskStatus } from "@/types/task";
@@ -40,7 +41,11 @@ function parseTaskQuery(
       ? (rawSort as TaskSort)
       : undefined;
 
-  return { keyword, status, projectId, sort };
+  const rawFrom = parseYmdParam(pickFirst(sp.dateFrom));
+  const rawTo = parseYmdParam(pickFirst(sp.dateTo));
+  const { dateFrom, dateTo } = normalizeDateRange(rawFrom, rawTo);
+
+  return { keyword, status, projectId, sort, dateFrom, dateTo };
 }
 
 export default async function TasksPage({
@@ -86,7 +91,7 @@ export default async function TasksPage({
             我的任务
           </h1>
           <p className="mt-2 text-sm text-zinc-500">
-            服务端筛选 + URL 同步，刷新后保留条件。
+            关键词、状态、项目、排序与「更新时间」日期范围；条件写入 URL，刷新不丢。
           </p>
         </div>
         <CreateTaskSheet projects={projects} />
@@ -108,6 +113,8 @@ export default async function TasksPage({
             status: (query.status as string) ?? "all",
             projectId: (query.projectId as string) ?? "all",
             sort: query.sort ?? "updated_desc",
+            dateFrom: query.dateFrom ?? "",
+            dateTo: query.dateTo ?? "",
           }}
         />
       </Suspense>
