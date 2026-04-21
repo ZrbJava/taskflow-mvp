@@ -4,6 +4,7 @@ import { Command } from 'cmdk'
 import {
 	ArrowRight,
 	CircleDot,
+	Columns2,
 	FolderKanban,
 	Info,
 	LayoutGrid,
@@ -170,9 +171,7 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 												key={t.id}
 												value={`task-${t.id}-${t.title}`}
 												onSelect={() => goTask(t.id)}
-												icon={
-													<Search className='h-4 w-4 text-violet-500' />
-												}
+												icon={<Search className='h-4 w-4 text-violet-500' />}
 												right={
 													<span className='flex max-w-[11rem] shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-[11px] text-zinc-400'>
 														{t.priority !== 'none' ? (
@@ -188,7 +187,7 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 																	{
 																		month: 'numeric',
 																		day: 'numeric',
-																	},
+																	}
 																)}
 															</span>
 														) : null}
@@ -213,9 +212,7 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 										value={`search-${keyword.trim()}`}
 										onSelect={searchTasks}
 										icon={<Search className='h-4 w-4 text-violet-500' />}
-										right={
-											<ArrowRight className='h-3.5 w-3.5 text-zinc-400' />
-										}
+										right={<ArrowRight className='h-3.5 w-3.5 text-zinc-400' />}
 									>
 										在任务列表中打开「
 										<span className='font-medium text-zinc-900'>
@@ -240,72 +237,84 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 
 						{!typing ? (
 							<>
-						<Command.Group heading='操作'>
-							<CmdItem
-								onSelect={() => run(() => router.push('/tasks?compose=1'))}
-								icon={<Plus className='h-4 w-4 text-violet-500' />}
-							>
-								新建任务
-								<Shortcut>C</Shortcut>
-							</CmdItem>
-							<CmdItem
-								onSelect={() =>
-									run(() => router.push('/dashboard/projects?compose=1'))
-								}
-								icon={<Plus className='h-4 w-4 text-violet-500' />}
-							>
-								新建项目
-							</CmdItem>
-						</Command.Group>
-
-						<Command.Group heading='跳转'>
-							<CmdItem
-								onSelect={() => run(() => router.push('/dashboard'))}
-								icon={<LayoutGrid className='h-4 w-4 text-zinc-500' />}
-							>
-								概览
-							</CmdItem>
-							<CmdItem
-								onSelect={() => run(() => router.push('/tasks'))}
-								icon={<ListChecks className='h-4 w-4 text-zinc-500' />}
-							>
-								我的任务
-							</CmdItem>
-							<CmdItem
-								onSelect={() => run(() => router.push('/dashboard/projects'))}
-								icon={<FolderKanban className='h-4 w-4 text-zinc-500' />}
-							>
-								项目列表
-							</CmdItem>
-							<CmdItem
-								onSelect={() =>
-									run(() => router.push('/dashboard/insights'))
-								}
-								icon={<LineChart className='h-4 w-4 text-zinc-500' />}
-							>
-								数据洞察
-							</CmdItem>
-							<CmdItem
-								onSelect={() => run(() => router.push('/about'))}
-								icon={<Info className='h-4 w-4 text-zinc-500' />}
-							>
-								关于
-							</CmdItem>
-						</Command.Group>
-
-						{projects.length > 0 ? (
-							<Command.Group heading='项目'>
-								{projects.map(p => (
+								<Command.Group heading='操作'>
 									<CmdItem
-										key={p.id}
-										onSelect={() => run(() => router.push(`/projects/${p.id}`))}
-										icon={<CircleDot className='h-3.5 w-3.5 text-zinc-400' />}
+										onSelect={() => run(() => router.push('/tasks?compose=1'))}
+										icon={<Plus className='h-4 w-4 text-violet-500' />}
 									>
-										{p.name}
+										新建任务
+										<Shortcut>C</Shortcut>
 									</CmdItem>
-								))}
-							</Command.Group>
-						) : null}
+									<CmdItem
+										onSelect={() =>
+											run(() => router.push('/dashboard/projects?compose=1'))
+										}
+										icon={<Plus className='h-4 w-4 text-violet-500' />}
+									>
+										新建项目
+									</CmdItem>
+								</Command.Group>
+
+								<Command.Group heading='跳转'>
+									<CmdItem
+										onSelect={() => run(() => router.push('/dashboard'))}
+										icon={<LayoutGrid className='h-4 w-4 text-zinc-500' />}
+									>
+										概览
+									</CmdItem>
+									<CmdItem
+										onSelect={() => run(() => router.push('/tasks'))}
+										icon={<ListChecks className='h-4 w-4 text-zinc-500' />}
+									>
+										我的任务
+									</CmdItem>
+									<CmdItem
+										onSelect={() => run(() => router.push('/tasks?view=board'))}
+										icon={<Columns2 className='h-4 w-4 text-zinc-500' />}
+									>
+										任务看板
+									</CmdItem>
+									<CmdItem
+										onSelect={() =>
+											run(() => router.push('/dashboard/projects'))
+										}
+										icon={<FolderKanban className='h-4 w-4 text-zinc-500' />}
+									>
+										项目列表
+									</CmdItem>
+									<CmdItem
+										onSelect={() =>
+											run(() => router.push('/dashboard/insights'))
+										}
+										icon={<LineChart className='h-4 w-4 text-zinc-500' />}
+									>
+										数据洞察
+									</CmdItem>
+									<CmdItem
+										onSelect={() => run(() => router.push('/about'))}
+										icon={<Info className='h-4 w-4 text-zinc-500' />}
+									>
+										关于
+									</CmdItem>
+								</Command.Group>
+
+								{projects.length > 0 ? (
+									<Command.Group heading='项目'>
+										{projects.map(p => (
+											<CmdItem
+												key={p.id}
+												onSelect={() =>
+													run(() => router.push(`/projects/${p.id}`))
+												}
+												icon={
+													<CircleDot className='h-3.5 w-3.5 text-zinc-400' />
+												}
+											>
+												{p.name}
+											</CmdItem>
+										))}
+									</Command.Group>
+								) : null}
 							</>
 						) : null}
 					</Command.List>

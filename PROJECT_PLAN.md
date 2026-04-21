@@ -123,7 +123,7 @@
 - [x] `P1` 展示最近 7 天新增趋势
 - [x] `P1` 展示项目分布情况
 - [ ] `P2` 新增“筛选结果概览”模块
-- [ ] `P2` 评估是否增加看板视图
+- [x] `P2` 看板视图第一版：`/tasks?view=board`，按状态分列（只读，未做拖拽）
 
 ---
 
@@ -216,5 +216,6 @@
 - [x] Vitest：`date-query` 日历与区间（parse / normalize / filter）
 - [x] 任务优先级（`TaskPriority`）+ 截止日期（`dueDate`），列表/详情/新建/命令面板展示，URL `priority=` 筛选，排序 `due_asc` / `due_desc`
 - [x] `/tasks` 快捷键 `C`：打开新建任务 Sheet 并保留当前筛选参数
+- [x] `/tasks` 快捷键 `F`：聚焦关键词搜索；`Input` 改为 `forwardRef`
+- [x] 列表/看板切换写入 URL `view=`，命令面板「任务看板」入口
 - [x] Prisma 索引：`@@index([userId, dueDate])`
-
