@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { CreateTaskSheet } from "@/components/create-task-sheet";
 import { TasksView } from "@/components/tasks-view";
+import { can } from "@/lib/acl";
 import { prisma } from "@/lib/db";
 import type { TaskListItem } from "@/types/task";
 import { notFound, redirect } from "next/navigation";
@@ -19,11 +20,20 @@ export default async function ProjectDetailPage({
 
   const { id } = await params;
 
-  const project = await prisma.project.findFirst({
-    where: { id, userId: session.user.id },
+  const project = await prisma.project.findUnique({
+    where: { id },
   });
 
   if (!project) {
+    notFound();
+  }
+
+  if (
+    !can(session.user.id, "read", {
+      type: "project",
+      ownerId: project.userId,
+    })
+  ) {
     notFound();
   }
 

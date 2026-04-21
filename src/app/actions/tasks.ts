@@ -3,11 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { assertCan, can } from '@/lib/acl'
 import { createTaskSchema, updateTaskSchema } from '@/lib/validations/task'
 
 function revalidateTaskViews(projectId?: string | null) {
 	revalidatePath('/tasks')
 	revalidatePath('/dashboard/projects')
+	revalidatePath('/dashboard/insights')
 	if (projectId) {
 		revalidatePath(`/projects/${projectId}`)
 	}
@@ -15,9 +17,10 @@ function revalidateTaskViews(projectId?: string | null) {
 
 export async function createTaskAction(formData: FormData) {
 	const session = await auth()
-	if (!session?.user?.id) {
-		return { ok: false as const, error: '未登录' }
-	}
+	const userId = session?.user?.id
+
+	const gate = assertCan(userId, 'create', { type: 'task', own: true })
+	if (!gate.ok) return { ok: false as const, error: gate.error }
 
 	const parsed = createTaskSchema.safeParse({
 		title: formData.get('title'),
@@ -40,11 +43,15 @@ export async function createTaskAction(formData: FormData) {
 			: null
 
 	if (projectId) {
-		const project = await prisma.project.findFirst({
-			where: { id: projectId, userId: session.user.id },
+		const project = await prisma.project.findUnique({
+			where: { id: projectId },
+			select: { userId: true },
 		})
 		if (!project) {
-			return { ok: false as const, error: '项目不存在或无权限' }
+			return { ok: false as const, error: '项目不存在' }
+		}
+		if (!can(userId, 'update', { type: 'project', ownerId: project.userId })) {
+			return { ok: false as const, error: '无权限在该项目下创建任务' }
 		}
 	}
 
@@ -53,7 +60,7 @@ export async function createTaskAction(formData: FormData) {
 			title,
 			description: description?.trim() ? description.trim() : null,
 			status: status ?? 'todo',
-			userId: session.user.id,
+			userId: userId!,
 			projectId,
 		},
 	})
@@ -64,25 +71,31 @@ export async function createTaskAction(formData: FormData) {
 
 export async function updateTaskStatusAction(taskId: string, status: string) {
 	const session = await auth()
-	if (!session?.user?.id) {
-		return { ok: false as const, error: '未登录' }
-	}
+	const userId = session?.user?.id
+
+	if (!userId) return { ok: false as const, error: '未登录' }
 
 	const parsed = updateTaskSchema.safeParse({ id: taskId, status })
 	if (!parsed.success) {
 		return { ok: false as const, error: '状态不合法' }
 	}
 
-	const existing = await prisma.task.findFirst({
-		where: { id: taskId, userId: session.user.id },
-		select: { projectId: true },
+	const existing = await prisma.task.findUnique({
+		where: { id: taskId },
+		select: { userId: true, projectId: true },
 	})
 	if (!existing) {
-		return { ok: false as const, error: '任务不存在或无权限' }
+		return { ok: false as const, error: '任务不存在' }
 	}
 
-	await prisma.task.updateMany({
-		where: { id: taskId, userId: session.user.id },
+	const gate = assertCan(userId, 'update', {
+		type: 'task',
+		ownerId: existing.userId,
+	})
+	if (!gate.ok) return { ok: false as const, error: gate.error }
+
+	await prisma.task.update({
+		where: { id: taskId },
 		data: { status: parsed.data.status },
 	})
 
@@ -92,9 +105,9 @@ export async function updateTaskStatusAction(taskId: string, status: string) {
 
 export async function updateTaskAction(formData: FormData) {
 	const session = await auth()
-	if (!session?.user?.id) {
-		return { ok: false as const, error: '未登录' }
-	}
+	const userId = session?.user?.id
+
+	if (!userId) return { ok: false as const, error: '未登录' }
 
 	const parsed = updateTaskSchema.safeParse({
 		id: formData.get('id'),
@@ -102,35 +115,40 @@ export async function updateTaskAction(formData: FormData) {
 		description: formData.get('description') ?? '',
 		status: formData.get('status') ?? undefined,
 	})
-	console.log('parsed', parsed)
 
 	if (!parsed.success) {
 		return { ok: false as const, error: '校验失败' }
 	}
 
 	const { id, title, description, status } = parsed.data
+
+	const existing = await prisma.task.findUnique({
+		where: { id },
+		select: { userId: true, projectId: true },
+	})
+	if (!existing) {
+		return { ok: false as const, error: '任务不存在' }
+	}
+
+	const gate = assertCan(userId, 'update', {
+		type: 'task',
+		ownerId: existing.userId,
+	})
+	if (!gate.ok) return { ok: false as const, error: gate.error }
+
 	const data: {
 		title?: string
 		description?: string | null
 		status?: 'todo' | 'doing' | 'done'
 	} = {}
-
 	if (title !== undefined) data.title = title
 	if (description !== undefined) {
 		data.description = description.trim() ? description.trim() : null
 	}
 	if (status !== undefined) data.status = status
 
-	const existing = await prisma.task.findFirst({
-		where: { id, userId: session.user.id },
-		select: { projectId: true },
-	})
-	if (!existing) {
-		return { ok: false as const, error: '任务不存在或无权限' }
-	}
-
-	await prisma.task.updateMany({
-		where: { id, userId: session.user.id },
+	await prisma.task.update({
+		where: { id },
 		data,
 	})
 
@@ -140,21 +158,25 @@ export async function updateTaskAction(formData: FormData) {
 
 export async function deleteTaskAction(taskId: string) {
 	const session = await auth()
-	if (!session?.user?.id) {
-		return { ok: false as const, error: '未登录' }
-	}
+	const userId = session?.user?.id
 
-	const existing = await prisma.task.findFirst({
-		where: { id: taskId, userId: session.user.id },
-		select: { projectId: true },
+	if (!userId) return { ok: false as const, error: '未登录' }
+
+	const existing = await prisma.task.findUnique({
+		where: { id: taskId },
+		select: { userId: true, projectId: true },
 	})
 	if (!existing) {
-		return { ok: false as const, error: '任务不存在或无权限' }
+		return { ok: false as const, error: '任务不存在' }
 	}
 
-	await prisma.task.deleteMany({
-		where: { id: taskId, userId: session.user.id },
+	const gate = assertCan(userId, 'delete', {
+		type: 'task',
+		ownerId: existing.userId,
 	})
+	if (!gate.ok) return { ok: false as const, error: gate.error }
+
+	await prisma.task.delete({ where: { id: taskId } })
 
 	revalidateTaskViews(existing.projectId)
 	return { ok: true as const }

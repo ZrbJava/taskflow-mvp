@@ -102,13 +102,14 @@
 
 目标：让项目具备可讲述的权限设计，而不只是简单登录校验。
 
-- [ ] `P0` 设计 ACL 核心模型：`can(user, action, resource)`
-- [ ] `P0` 明确资源类型：任务 / 项目 / 用户
-- [ ] `P0` 明确动作类型：查看 / 创建 / 编辑 / 删除
-- [ ] `P1` 前端按钮级权限控制
-- [ ] `P1` Server Actions 权限校验
-- [ ] `P1` 页面访问权限校验
-- [ ] `P1` 权限失败返回统一错误
+- [x] `P0` 设计 ACL 核心模型：`can(user, action, resource)`
+- [x] `P0` 明确资源类型：任务 / 项目
+- [x] `P0` 明确动作类型：read / create / update / delete
+- [ ] `P1` 前端按钮级权限控制（当前全部归属单用户，UI 层无需差异化）
+- [x] `P1` Server Actions 权限校验
+- [x] `P1` 页面访问权限校验
+- [x] `P1` 权限失败返回统一错误（`assertCan`）
+- [x] `P2` 覆盖 Vitest 单元测试（8 项通过）
 - [ ] `P2` 增加权限设计文档
 
 ---
@@ -207,4 +208,6 @@
 - [x] Sidebar 增加「搜索 / ⌘K」入口
 - [x] Insights 数据洞察页：指标卡 / 近 7 天趋势 / 状态分布 / 项目分布
 - [x] Sidebar + CommandMenu 新增 Insights 入口
+- [x] ACL 第一版：`can()` / `assertCan()`，覆盖 Server Actions 与页面鉴权
+- [x] Vitest 覆盖 ACL 规则（8 项通过）
 

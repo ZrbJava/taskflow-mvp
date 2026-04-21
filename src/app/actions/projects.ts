@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { assertCan } from "@/lib/acl";
 
 const createProjectSchema = z.object({
   name: z
@@ -15,9 +16,10 @@ const createProjectSchema = z.object({
 
 export async function createProjectAction(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return { ok: false as const, error: "未登录" };
-  }
+  const userId = session?.user?.id;
+
+  const gate = assertCan(userId, "create", { type: "project", own: true });
+  if (!gate.ok) return { ok: false as const, error: gate.error };
 
   const parsed = createProjectSchema.safeParse({
     name: formData.get("name"),
@@ -32,13 +34,14 @@ export async function createProjectAction(formData: FormData) {
   const project = await prisma.project.create({
     data: {
       name: parsed.data.name,
-      userId: session.user.id,
+      userId: userId!,
     },
     select: { id: true },
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/projects");
+  revalidatePath("/dashboard/insights");
   revalidatePath("/tasks");
 
   return { ok: true as const, id: project.id };
