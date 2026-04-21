@@ -2,6 +2,7 @@
 
 import {
 	DndContext,
+	DragOverlay,
 	PointerSensor,
 	closestCorners,
 	useDraggable,
@@ -9,10 +10,11 @@ import {
 	useSensor,
 	useSensors,
 	type DragEndEvent,
+	type DragStartEvent,
 	type UniqueIdentifier,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { useMemo, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { updateTaskStatusAction } from '@/app/actions/tasks'
@@ -42,10 +44,13 @@ function BoardDraggableCard({
 	task,
 	openTaskId,
 	onStripTaskId,
+	savePending,
 }: {
 	task: TaskListItem
 	openTaskId?: string
 	onStripTaskId?: () => void
+	/** 保存中：禁止再次拖拽，避免并发更新 */
+	savePending: boolean
 }) {
 	const {
 		attributes,
@@ -54,11 +59,12 @@ function BoardDraggableCard({
 		setActivatorNodeRef,
 		transform,
 		isDragging,
-	} = useDraggable({ id: task.id })
+	} = useDraggable({ id: task.id, disabled: savePending })
 
 	const style = {
 		transform: CSS.Translate.toString(transform),
-		opacity: isDragging ? 0.55 : undefined,
+		// 使用 DragOverlay 时原位置淡出，由浮层展示
+		opacity: isDragging ? 0 : undefined,
 		zIndex: isDragging ? 20 : undefined,
 	}
 
@@ -80,17 +86,24 @@ function BoardColumn({
 	status,
 	count,
 	children,
+	dropDisabled,
 }: {
 	status: TaskStatus
 	count: number
 	children: React.ReactNode
+	dropDisabled: boolean
 }) {
-	const { setNodeRef, isOver } = useDroppable({ id: status })
+	const { setNodeRef, isOver } = useDroppable({
+		id: status,
+		disabled: dropDisabled,
+	})
 
 	return (
 		<section
 			className={`flex min-h-[min(60vh,28rem)] flex-col rounded-xl border bg-zinc-50/40 p-3 transition-colors ${
-				isOver
+				dropDisabled ? 'opacity-60' : ''
+			} ${
+				isOver && !dropDisabled
 					? 'border-violet-400 ring-2 ring-violet-400/30'
 					: 'border-zinc-200'
 			}`}
@@ -122,6 +135,7 @@ export function TasksBoard({
 }) {
 	const router = useRouter()
 	const [pending, startTransition] = useTransition()
+	const [activeTask, setActiveTask] = useState<TaskListItem | null>(null)
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
@@ -141,7 +155,18 @@ export function TasksBoard({
 		return m
 	}, [tasks])
 
+	const handleDragStart = ({ active }: DragStartEvent) => {
+		const t = tasks.find(x => x.id === String(active.id))
+		setActiveTask(t ?? null)
+	}
+
+	const handleDragCancel = () => {
+		setActiveTask(null)
+	}
+
 	const handleDragEnd = (event: DragEndEvent) => {
+		setActiveTask(null)
+
 		const { active, over } = event
 		if (!over || pending) return
 
@@ -169,14 +194,24 @@ export function TasksBoard({
 			id='tasks-board-dnd'
 			sensors={sensors}
 			collisionDetection={closestCorners}
+			onDragStart={handleDragStart}
+			onDragCancel={handleDragCancel}
 			onDragEnd={handleDragEnd}
 		>
 			<p className='mb-2 text-xs text-zinc-500'>
 				拖动卡片左侧手柄到其它列即可更新状态（与列表共用同一套权限校验）。
+				{pending ? (
+					<span className='ml-1 text-violet-600'>正在保存…</span>
+				) : null}
 			</p>
 			<div className='grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start'>
 				{STATUSES.map(s => (
-					<BoardColumn key={s} status={s} count={grouped[s].length}>
+					<BoardColumn
+						key={s}
+						status={s}
+						count={grouped[s].length}
+						dropDisabled={pending}
+					>
 						{grouped[s].length === 0 ? (
 							<p className='rounded-lg border border-dashed border-zinc-200 bg-white/60 py-8 text-center text-xs text-zinc-400'>
 								拖入任务到此处
@@ -188,12 +223,24 @@ export function TasksBoard({
 									task={task}
 									openTaskId={openTaskId}
 									onStripTaskId={onStripTaskId}
+									savePending={pending}
 								/>
 							))
 						)}
 					</BoardColumn>
 				))}
 			</div>
+			<DragOverlay
+				className='z-50 cursor-grabbing'
+				dropAnimation={{
+					duration: 200,
+					easing: 'cubic-bezier(0.18, 0.67, 0.6, 1)',
+				}}
+			>
+				{activeTask ? (
+					<TaskBoardCard variant='overlay' task={activeTask} />
+				) : null}
+			</DragOverlay>
 		</DndContext>
 	)
 }

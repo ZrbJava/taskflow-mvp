@@ -30,6 +30,8 @@ export function TaskBoardCard({
 	boardDragSetHandle,
 	boardDragAttributes,
 	boardDragListeners,
+	/** 仅用于 DragOverlay：无详情 Sheet、无交互，避免双份水合与误点 */
+	variant = 'default',
 }: {
 	task: TaskListItem
 	initialDetailOpen?: boolean
@@ -38,6 +40,7 @@ export function TaskBoardCard({
 	boardDragSetHandle?: (element: HTMLElement | null) => void
 	boardDragAttributes?: DraggableAttributes
 	boardDragListeners?: DraggableSyntheticListeners
+	variant?: 'default' | 'overlay'
 }) {
 	const [detailOpen, setDetailOpen] = useState(initialDetailOpen)
 
@@ -52,9 +55,15 @@ export function TaskBoardCard({
 		boardDragAttributes != null &&
 		boardDragListeners != null
 
+	const isOverlay = variant === 'overlay'
+
 	const body = (
 		<div
-			className={`flex w-full items-stretch gap-0.5 rounded-lg border border-zinc-200 border-t-[3px] bg-white text-left shadow-sm transition ${COLUMN_TOP[task.status]} hover:border-zinc-300 hover:shadow`}
+			className={`flex w-full items-stretch gap-0.5 rounded-lg border border-zinc-200 border-t-[3px] bg-white text-left shadow-sm transition ${COLUMN_TOP[task.status]} ${
+				isOverlay
+					? 'max-w-md pointer-events-none cursor-grabbing select-none shadow-xl ring-2 ring-violet-400/40'
+					: 'hover:border-zinc-300 hover:shadow'
+			}`}
 		>
 			{showBoardDrag ? (
 				<button
@@ -96,6 +105,10 @@ export function TaskBoardCard({
 			</button>
 		</div>
 	)
+
+	if (isOverlay) {
+		return body
+	}
 
 	return (
 		<>
