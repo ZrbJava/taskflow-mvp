@@ -1,5 +1,10 @@
 'use client'
 
+import type {
+	DraggableAttributes,
+	DraggableSyntheticListeners,
+} from '@dnd-kit/core'
+import { GripVertical } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { TaskDetailSheet } from '@/components/task-detail-sheet'
 import { PRIORITY_BADGE_CLASS, PRIORITY_LABEL } from '@/lib/task-priority'
@@ -22,10 +27,17 @@ export function TaskBoardCard({
 	task,
 	initialDetailOpen = false,
 	onDetailClose,
+	boardDragSetHandle,
+	boardDragAttributes,
+	boardDragListeners,
 }: {
 	task: TaskListItem
 	initialDetailOpen?: boolean
 	onDetailClose?: () => void
+	/** 看板拖拽：与下面两项同时传入时渲染左侧手柄（dnd-kit `setActivatorNodeRef`） */
+	boardDragSetHandle?: (element: HTMLElement | null) => void
+	boardDragAttributes?: DraggableAttributes
+	boardDragListeners?: DraggableSyntheticListeners
 }) {
 	const [detailOpen, setDetailOpen] = useState(initialDetailOpen)
 
@@ -35,12 +47,31 @@ export function TaskBoardCard({
 
 	const dueLabel = formatDueShort(task.dueDate)
 
-	return (
-		<>
+	const showBoardDrag =
+		boardDragSetHandle != null &&
+		boardDragAttributes != null &&
+		boardDragListeners != null
+
+	const body = (
+		<div
+			className={`flex w-full items-stretch gap-0.5 rounded-lg border border-zinc-200 border-t-[3px] bg-white text-left shadow-sm transition ${COLUMN_TOP[task.status]} hover:border-zinc-300 hover:shadow`}
+		>
+			{showBoardDrag ? (
+				<button
+					type='button'
+					ref={boardDragSetHandle}
+					className='touch-none cursor-grab rounded-l-md px-1 py-3 text-zinc-400 hover:bg-zinc-50 active:cursor-grabbing'
+					aria-label='拖动以改变状态列'
+					{...boardDragAttributes}
+					{...boardDragListeners}
+				>
+					<GripVertical className='h-4 w-4 shrink-0' />
+				</button>
+			) : null}
 			<button
 				type='button'
 				onClick={() => setDetailOpen(true)}
-				className={`w-full rounded-lg border border-zinc-200 border-t-[3px] bg-white p-3 text-left shadow-sm transition ${COLUMN_TOP[task.status]} hover:border-zinc-300 hover:shadow`}
+				className='min-w-0 flex-1 p-3 text-left'
 			>
 				<div className='flex items-start justify-between gap-2'>
 					<span className='line-clamp-3 text-sm font-medium leading-snug text-zinc-900'>
@@ -63,7 +94,12 @@ export function TaskBoardCard({
 					</p>
 				) : null}
 			</button>
+		</div>
+	)
 
+	return (
+		<>
+			{body}
 			<TaskDetailSheet
 				task={task}
 				open={detailOpen}
