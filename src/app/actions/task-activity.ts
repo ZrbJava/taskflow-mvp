@@ -42,3 +42,34 @@ export async function listTaskActivitiesForTaskAction(taskId: string) {
 		})),
 	}
 }
+
+/** 当前用户名下所有任务的动态（跨任务时间线）。 */
+export async function listGlobalTaskActivitiesForUserAction() {
+	const session = await auth()
+	const userId = session?.user?.id
+	if (!userId) return { ok: false as const, error: '未登录', items: [] }
+
+	const rows = await prisma.taskActivity.findMany({
+		where: { task: { userId } },
+		orderBy: { createdAt: 'desc' },
+		take: 100,
+		include: {
+			task: { select: { id: true, title: true } },
+			user: { select: { email: true, name: true } },
+		},
+	})
+
+	return {
+		ok: true as const,
+		items: rows.map(r => ({
+			id: r.id,
+			kind: r.kind,
+			summary: r.summary,
+			createdAt: r.createdAt.toISOString(),
+			actorLabel:
+				r.user.name?.trim() || r.user.email.split('@')[0] || r.user.email,
+			taskId: r.task.id,
+			taskTitle: r.task.title,
+		})),
+	}
+}

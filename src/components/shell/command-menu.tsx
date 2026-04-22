@@ -11,6 +11,7 @@ import {
 	Keyboard,
 	LayoutGrid,
 	LineChart,
+	History,
 	ListChecks,
 	Tag,
 	Bell,
@@ -325,6 +326,14 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 										icon={<LineChart className='h-4 w-4 text-zinc-500' />}
 									>
 										数据洞察
+									</CmdItem>
+									<CmdItem
+										onSelect={() =>
+											run(() => router.push('/dashboard/activity'))
+										}
+										icon={<History className='h-4 w-4 text-zinc-500' />}
+									>
+										全部动态
 									</CmdItem>
 									<CmdItem
 										onSelect={() => run(() => router.push('/about'))}
