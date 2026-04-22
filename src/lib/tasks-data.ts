@@ -7,6 +7,16 @@ export type TaskWithProject = Awaited<
   ReturnType<typeof getTasksForUser>
 >[number];
 
+export function mapChecklistProgress(
+  items: { done: boolean }[],
+): { done: number; total: number } | null {
+  if (items.length === 0) return null;
+  return {
+    done: items.filter((i) => i.done).length,
+    total: items.length,
+  };
+}
+
 export type TaskSort =
   | "updated_desc"
   | "updated_asc"
@@ -115,6 +125,7 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
       project: { select: { id: true, name: true } },
       labels: { select: { id: true, name: true, color: true } },
       assignee: { select: { id: true, name: true, email: true } },
+      checklistItems: { select: { done: true } },
     },
   });
 }

@@ -169,6 +169,14 @@ export function TaskRow({
                   我
                 </span>
               ) : null}
+              {task.checklist ? (
+                <span
+                  className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-px text-[10px] tabular-nums text-zinc-500"
+                  title="检查清单进度"
+                >
+                  {task.checklist.done}/{task.checklist.total}
+                </span>
+              ) : null}
             </div>
           </span>
         </button>

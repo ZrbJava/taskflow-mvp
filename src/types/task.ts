@@ -31,6 +31,8 @@ export interface TaskListItem {
 	labels: TaskLabelRef[]
 	/** 未分配则为 null */
 	assignee: TaskAssigneeRef | null
+	/** 检查清单进度；无清单项时为 null */
+	checklist: { done: number; total: number } | null
 }
 
 /** 命令面板等场景的轻量任务摘要（无 description）。 */

@@ -35,6 +35,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { TaskChecklistBlock } from "@/components/task-checklist-block";
 import { dueDateToYmd } from "@/lib/due-date";
 import { PRIORITY_LABEL } from "@/lib/task-priority";
 import type { TaskListItem, TaskPriority, TaskStatus } from "@/types/task";
@@ -439,6 +440,8 @@ export function TaskDetailSheet({
               </Button>
             </div>
           </div>
+
+          <TaskChecklistBlock taskId={task.id} />
 
           <div className="rounded-xl border border-zinc-200 bg-white p-3">
             <div className="flex items-center gap-2 text-xs font-medium text-zinc-600">

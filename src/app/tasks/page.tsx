@@ -7,7 +7,7 @@ import {
 	pickFirst,
 } from '@/lib/parse-tasks-url'
 import { prisma } from '@/lib/db'
-import { getTasksForUser } from '@/lib/tasks-data'
+import { getTasksForUser, mapChecklistProgress } from '@/lib/tasks-data'
 import type { TaskListItem } from '@/types/task'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
@@ -64,6 +64,7 @@ export default async function TasksPage({
 					email: t.assignee.email,
 				}
 			: null,
+		checklist: mapChecklistProgress(t.checklistItems),
 	}))
 
 	return (

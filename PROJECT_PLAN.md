@@ -29,7 +29,7 @@
 - [x] `P1` 梳理并落地 ACL 权限设计第一版
 - [ ] `P1` 提升 README 与项目说明的展示质量
 - [~] `P0` 对标 Linear 第一波：App Shell 左侧导航、密度更高的列表样式
-- [ ] `P0`（backlog）子任务或检查清单，作为下一迭代主线
+- [ ] `P0`（backlog）评论 @ 提及 + 基础通知，作为下一迭代主线
 
 ---
 
@@ -178,7 +178,7 @@
 ### P0 — 高重要 · 建议优先排期
 
 - [x] **任务负责人 / 「分配给我」**：`Task.assigneeId`（MVP 仅本人）；URL `assignee=mine` / `unassigned`；筛选面板 + 命令面板入口；详情与新建表单可指派。
-- [ ] **子任务或检查清单**：独立表或 `Task` 自关联；详情内勾选进度；可选汇总到父任务。
+- [x] **子任务或检查清单**：`TaskChecklistItem`（标题 + `done` + `position`）；详情内增删勾选；列表/看板显示 `完成数/总数` 徽标。
 - [x] **标签系统**：多对多标签、`/dashboard/labels`、任务详情勾选、列表/看板展示标签。
 - [x] **按标签筛选任务**：URL `labelId=` + 工具栏筛选 + 标签管理页「查看任务」链到 `/tasks`。
 - [ ] **评论 @ 提及 + 基础通知**：解析 `@user`；`Notification` 表 + 站内列表（邮件/Webhook 可后置）。
@@ -256,3 +256,4 @@
 - [x] 任务评论：`Comment` 模型与 Server Actions，任务详情内列表/发送/删除
 - [x] URL `labelId=` 按标签筛选、`TaskLabelChips` 可点击跳转筛选
 - [x] 任务负责人：`assigneeId`、URL `assignee=` 筛选、列表「我」徽标、详情指派、新建「指派给我」、⌘K「分配给我的任务」
+- [x] 检查清单：`TaskChecklistItem`、任务详情块、列表/看板 `n/m` 进度徽标
