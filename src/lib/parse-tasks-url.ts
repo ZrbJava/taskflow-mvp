@@ -44,6 +44,9 @@ export function parseTasksTaskQuery(
 	const rawProject = pickFirst(sp.projectId)
 	const projectId = rawProject ? rawProject : undefined
 
+	const rawLabelId = pickFirst(sp.labelId)?.trim()
+	const labelId = rawLabelId && rawLabelId.length > 0 ? rawLabelId : undefined
+
 	const rawSort = pickFirst(sp.sort)
 	const sort =
 		rawSort && ALLOWED_SORT.includes(rawSort as TaskSort)
@@ -61,7 +64,16 @@ export function parseTasksTaskQuery(
 			? (rawPriority as TaskQuery['priority'])
 			: undefined
 
-	return { keyword, status, projectId, sort, dateFrom, dateTo, priority }
+	return {
+		keyword,
+		status,
+		projectId,
+		labelId,
+		sort,
+		dateFrom,
+		dateTo,
+		priority,
+	}
 }
 
 export function parseViewMode(

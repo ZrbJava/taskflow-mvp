@@ -19,6 +19,8 @@ export interface TaskQuery {
   keyword?: string;
   status?: TaskStatus | "all";
   projectId?: string | "all";
+  /** 仅保留带该标签的任务（标签须属于同一用户） */
+  labelId?: string;
   sort?: TaskSort;
   priority?: TaskPriority | "all";
   /** YYYY-MM-DD，按任务 `updatedAt`（UTC 日界） */
@@ -55,8 +57,16 @@ function buildOrderBy(
 }
 
 export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
-  const { keyword, status, projectId, sort, dateFrom, dateTo, priority } =
-    query;
+  const {
+    keyword,
+    status,
+    projectId,
+    labelId,
+    sort,
+    dateFrom,
+    dateTo,
+    priority,
+  } = query;
 
   const where: Prisma.TaskWhereInput = { userId };
 
@@ -66,6 +76,10 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
 
   if (projectId && projectId !== "all") {
     where.projectId = projectId;
+  }
+
+  if (labelId) {
+    where.labels = { some: { id: labelId, userId } };
   }
 
   if (priority && priority !== "all") {

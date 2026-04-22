@@ -40,10 +40,18 @@ interface ProjectOption {
 	name: string
 }
 
+export interface LabelFilterOption {
+	id: string
+	name: string
+	color: string | null
+}
+
 interface CurrentQuery {
 	keyword: string
 	status: string
 	projectId: string
+	/** 按标签筛选（空字符串表示不筛选） */
+	labelId: string
 	sort: string
 	dateFrom: string
 	dateTo: string
@@ -55,6 +63,8 @@ interface CurrentQuery {
 interface TasksViewProps {
 	tasks: TaskListItem[]
 	projects: ProjectOption[]
+	/** 用于筛选下拉，与当前用户标签列表一致 */
+	labels: LabelFilterOption[]
 	currentQuery: CurrentQuery
 	/** 来自 `/tasks?taskId=`，用于命令面板等深链打开详情抽屉 */
 	openTaskId?: string
@@ -84,6 +94,7 @@ function buildQueryString(params: Record<string, string>): string {
 		if (key === 'sort' && value === 'updated_desc') return
 		if ((key === 'dateFrom' || key === 'dateTo') && !value) return
 		if (key === 'priority' && value === 'all') return
+		if (key === 'labelId' && !value) return
 		if (key === 'view' && value === 'list') return
 		search.set(key, value)
 	})
@@ -94,6 +105,7 @@ function buildQueryString(params: Record<string, string>): string {
 export function TasksView({
 	tasks,
 	projects,
+	labels,
 	currentQuery,
 	openTaskId,
 }: TasksViewProps) {
@@ -102,10 +114,8 @@ export function TasksView({
 	const searchParams = useSearchParams()
 	const [pending, startTransition] = useTransition()
 
-	const navigateBasePath =
-		pathname.match(/^\/projects\/[^/]+/)?.[0] ?? '/tasks'
-	const projectScopedId =
-		pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null
+	const navigateBasePath = pathname.match(/^\/projects\/[^/]+/)?.[0] ?? '/tasks'
+	const projectScopedId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null
 	const isTaskHub = pathname === '/tasks' || projectScopedId !== null
 
 	const stripTaskIdFromUrl = () => {
@@ -127,6 +137,7 @@ export function TasksView({
 	const [dateFrom, setDateFrom] = useState(currentQuery.dateFrom || '')
 	const [dateTo, setDateTo] = useState(currentQuery.dateTo || '')
 	const [priority, setPriority] = useState(currentQuery.priority || 'all')
+	const [labelId, setLabelId] = useState(currentQuery.labelId || '')
 	const [view, setView] = useState<'list' | 'board'>(
 		currentQuery.view ?? 'list'
 	)
@@ -139,11 +150,13 @@ export function TasksView({
 		setDateFrom(currentQuery.dateFrom || '')
 		setDateTo(currentQuery.dateTo || '')
 		setPriority(currentQuery.priority || 'all')
+		setLabelId(currentQuery.labelId || '')
 		setView(currentQuery.view ?? 'list')
 	}, [
 		currentQuery.keyword,
 		currentQuery.status,
 		currentQuery.projectId,
+		currentQuery.labelId,
 		currentQuery.sort,
 		currentQuery.dateFrom,
 		currentQuery.dateTo,
@@ -157,6 +170,7 @@ export function TasksView({
 				keyword,
 				status,
 				projectId: projectScopedId ?? projectId,
+				labelId,
 				sort,
 				dateFrom,
 				dateTo,
@@ -181,6 +195,7 @@ export function TasksView({
 			dateFrom,
 			dateTo,
 			priority,
+			labelId,
 			view,
 			router,
 			startTransition,
@@ -254,6 +269,7 @@ export function TasksView({
 		setDateFrom('')
 		setDateTo('')
 		setPriority('all')
+		setLabelId('')
 		setView('list')
 		startTransition(() => {
 			router.push(navigateBasePath)
@@ -277,6 +293,7 @@ export function TasksView({
 	const hasActiveFilters =
 		status !== 'all' ||
 		(!projectScopedId && projectId !== 'all') ||
+		Boolean(currentQuery.labelId) ||
 		(currentQuery.keyword && currentQuery.keyword.length > 0) ||
 		sort !== 'updated_desc' ||
 		Boolean(currentQuery.dateFrom) ||
@@ -292,6 +309,10 @@ export function TasksView({
 			? projects.find(p => p.id === currentQuery.projectId)?.name
 			: undefined
 
+	const filterLabelName = currentQuery.labelId
+		? labels.find(l => l.id === currentQuery.labelId)?.name
+		: undefined
+
 	return (
 		<div className='space-y-4'>
 			<div className='rounded-xl border border-zinc-200 bg-white p-4 shadow-sm'>
@@ -303,7 +324,7 @@ export function TasksView({
 						</div>
 						<p className='mt-1 text-sm text-zinc-500'>
 							对标 Linear：高密度列表 + 可分享
-							URL；「更新日期」按任务最近更新时间过滤。
+							URL；支持按标签、优先级、更新日期等组合筛选。
 						</p>
 					</div>
 					<div className='flex flex-wrap items-center gap-2'>
@@ -456,6 +477,28 @@ export function TasksView({
 								</SelectContent>
 							</Select>
 
+							<p className='mt-5 text-sm font-medium text-zinc-800'>标签</p>
+							<Select
+								value={labelId || 'all'}
+								onValueChange={value => {
+									const v = value === 'all' ? '' : value
+									setLabelId(v)
+									applyQuery({ labelId: v })
+								}}
+							>
+								<SelectTrigger className='mt-2'>
+									<SelectValue placeholder='全部标签' />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value='all'>全部标签</SelectItem>
+									{labels.map(l => (
+										<SelectItem key={l.id} value={l.id}>
+											{l.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+
 							<p className='mt-5 text-sm font-medium text-zinc-800'>状态</p>
 							<div className='mt-3'>
 								<TaskStatusFilter
@@ -585,6 +628,15 @@ export function TasksView({
 							onRemove={() => {
 								setProjectId('all')
 								applyQuery({ projectId: 'all' })
+							}}
+						/>
+					) : null}
+					{currentQuery.labelId ? (
+						<FilterChip
+							label={`标签：${filterLabelName ?? '（无效或已删除）'}`}
+							onRemove={() => {
+								setLabelId('')
+								applyQuery({ labelId: '' })
 							}}
 						/>
 					) : null}

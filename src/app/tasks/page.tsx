@@ -29,12 +29,17 @@ export default async function TasksPage({
 
 	const view = parseViewMode(sp)
 
-	const [raw, projects] = await Promise.all([
+	const [raw, projects, labels] = await Promise.all([
 		getTasksForUser(session.user.id, query),
 		prisma.project.findMany({
 			where: { userId: session.user.id },
 			orderBy: { updatedAt: 'desc' },
 			select: { id: true, name: true },
+		}),
+		prisma.label.findMany({
+			where: { userId: session.user.id },
+			orderBy: { name: 'asc' },
+			select: { id: true, name: true, color: true },
 		}),
 	])
 	const tasks: TaskListItem[] = raw.map(t => ({
@@ -65,7 +70,8 @@ export default async function TasksPage({
 						我的任务
 					</h1>
 					<p className='mt-2 text-sm text-zinc-500'>
-						关键词、状态、优先级、项目、排序与日期；条件写入 URL，刷新不丢。
+						关键词、状态、优先级、项目、标签、排序与日期；条件写入
+						URL，刷新不丢。
 					</p>
 				</div>
 				<CreateTaskSheet projects={projects} />
@@ -81,11 +87,13 @@ export default async function TasksPage({
 				<TasksView
 					tasks={tasks}
 					projects={projects}
+					labels={labels}
 					openTaskId={openTaskId}
 					currentQuery={{
 						keyword: query.keyword ?? '',
 						status: (query.status as string) ?? 'all',
 						projectId: (query.projectId as string) ?? 'all',
+						labelId: query.labelId ?? '',
 						sort: query.sort ?? 'updated_desc',
 						dateFrom: query.dateFrom ?? '',
 						dateTo: query.dateTo ?? '',

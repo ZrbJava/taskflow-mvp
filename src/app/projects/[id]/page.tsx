@@ -52,10 +52,17 @@ export default async function ProjectDetailPage({
 	const rawTaskId = pickFirst(sp.taskId)?.trim()
 	const openTaskId = rawTaskId && rawTaskId.length > 0 ? rawTaskId : undefined
 
-	const rows = await getTasksForUser(session.user.id, {
-		...query,
-		projectId: id,
-	})
+	const [rows, labels] = await Promise.all([
+		getTasksForUser(session.user.id, {
+			...query,
+			projectId: id,
+		}),
+		prisma.label.findMany({
+			where: { userId: session.user.id },
+			orderBy: { name: 'asc' },
+			select: { id: true, name: true, color: true },
+		}),
+	])
 
 	const tasks: TaskListItem[] = rows.map(t => ({
 		id: t.id,
@@ -85,7 +92,7 @@ export default async function ProjectDetailPage({
 						{project.name}
 					</h1>
 					<p className='mt-2 text-sm text-zinc-500'>
-						与「我的任务」相同的筛选与列表/看板视图；条件写入
+						与「我的任务」相同的筛选（含标签）与列表/看板视图；条件写入
 						URL，仅本项目数据。
 					</p>
 					<p className='mt-2 text-xs text-zinc-400'>
@@ -106,11 +113,13 @@ export default async function ProjectDetailPage({
 			<TasksView
 				tasks={tasks}
 				projects={[{ id: project.id, name: project.name }]}
+				labels={labels}
 				openTaskId={openTaskId}
 				currentQuery={{
 					keyword: query.keyword ?? '',
 					status: (query.status as string) ?? 'all',
 					projectId: id,
+					labelId: query.labelId ?? '',
 					sort: query.sort ?? 'updated_desc',
 					dateFrom: query.dateFrom ?? '',
 					dateTo: query.dateTo ?? '',
