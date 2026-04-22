@@ -29,7 +29,8 @@
 - [x] `P1` 梳理并落地 ACL 权限设计第一版
 - [ ] `P1` 提升 README 与项目说明的展示质量
 - [~] `P0` 对标 Linear 第一波：App Shell 左侧导航、密度更高的列表样式
-- [ ] `P0`（backlog）附件上传或截止提醒 Cron（择一）
+- [x] `P0`（backlog）截止提醒 Cron（站内通知，UTC）
+- [ ] `P0`（backlog）附件上传
 
 ---
 
@@ -187,7 +188,7 @@
 
 - [ ] **附件**：任务/评论上传；对象存储 + 大小/类型限制；删除任务时级联或孤儿策略。
 - [x] **活动流 / 审计日志**：任务详情「活动流」+ `/dashboard/activity` 全部动态；`TaskActivity` 覆盖创建/状态/详情/负责人/标签/清单/评论。
-- [ ] **截止提醒**：今日/明日到期视图；Cron + 邮件或站内提醒（推送权限可后置）。
+- [x] **截止提醒（站内）**：URL `due=today|tomorrow|…` 快捷视图；每日 UTC Cron 写入 `Notification`（`due_today` / `due_tomorrow`）；邮件可后置。
 - [ ] **项目成员协作**：项目维度成员与权限（在现有 ACL 上扩展资源范围）。
 
 ### P2 — 体验与扩展
@@ -260,3 +261,4 @@
 - [x] 评论 @ 与通知：`Notification`、提及解析、`/dashboard/notifications`、侧栏角标、⌘K 入口
 - [x] 任务活动流：`TaskActivity` + 详情时间线；关键操作写入审计摘要
 - [x] 全局全部动态：`/dashboard/activity`、侧栏与 ⌘K 入口
+- [x] 截止日站内提醒：`NotificationKind` + `dedupeKey` 幂等、`/api/cron/due-reminders`、`CRON_SECRET`、`vercel.json` 每日 UTC 0 点

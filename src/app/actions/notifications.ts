@@ -46,7 +46,9 @@ export async function createMentionNotificationsForComment(params: {
 		data: recipientIds.map(userId => ({
 			userId,
 			taskId: params.taskId,
+			kind: 'mention' as const,
 			commentId: params.commentId,
+			dedupeKey: `m:${userId}:${params.commentId}`,
 		})),
 		skipDuplicates: true,
 	})
@@ -81,12 +83,15 @@ export async function listNotificationsAction() {
 			id: n.id,
 			readAt: n.readAt?.toISOString() ?? null,
 			createdAt: n.createdAt.toISOString(),
+			kind: n.kind,
 			taskId: n.task.id,
 			taskTitle: n.task.title,
-			commentId: n.comment.id,
-			commentSnippet: n.comment.body.slice(0, 160),
+			commentId: n.comment?.id ?? null,
+			commentSnippet: n.comment?.body.slice(0, 160) ?? null,
 			authorLabel:
-				n.comment.user.name?.trim() || n.comment.user.email.split('@')[0],
+				n.comment?.user.name?.trim() ||
+				n.comment?.user.email.split('@')[0] ||
+				null,
 		})),
 	}
 }

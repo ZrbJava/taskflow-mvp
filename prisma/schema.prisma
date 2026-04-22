@@ -22,6 +22,12 @@ enum TaskPriority {
   urgent
 }
 
+enum NotificationKind {
+  mention
+  due_today
+  due_tomorrow
+}
+
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -118,19 +124,21 @@ model Comment {
   @@index([taskId, createdAt])
 }
 
-/// 站内通知（MVP：评论 @ 提及）。
+/// 站内通知：评论 @ 提及、截止日提醒（Cron）等。
 model Notification {
-  id        String    @id @default(cuid())
+  id        String            @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   taskId    String
-  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  commentId String
-  comment   Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  task      Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  kind      NotificationKind  @default(mention)
+  commentId String?
+  comment   Comment?          @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  /// 幂等键：提及 `m:{userId}:{commentId}`；截止 `due:{...}`（见 `lib/due-reminders.ts`）
+  dedupeKey String            @unique
   readAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime          @default(now())
 
-  @@unique([userId, commentId])
   @@index([userId, readAt])
   @@index([userId, createdAt])
 }
