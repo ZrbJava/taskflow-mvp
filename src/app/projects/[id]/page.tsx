@@ -129,6 +129,7 @@ export default async function ProjectDetailPage({
 					projectId: id,
 					labelId: query.labelId ?? '',
 					assignee: query.assignee ?? 'all',
+					due: query.due ?? 'all',
 					sort: query.sort ?? 'updated_desc',
 					dateFrom: query.dateFrom ?? '',
 					dateTo: query.dateTo ?? '',

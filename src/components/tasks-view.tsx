@@ -54,6 +54,8 @@ interface CurrentQuery {
 	labelId: string
 	/** `all` | `mine` | `unassigned` */
 	assignee: string
+	/** 截止日快捷：`all` | `overdue` | `today` | `tomorrow` | `week` */
+	due: string
 	sort: string
 	dateFrom: string
 	dateTo: string
@@ -93,6 +95,14 @@ const ASSIGNEE_FILTER_LABEL: Record<string, string> = {
 	unassigned: '未分配',
 }
 
+const DUE_FILTER_LABEL: Record<string, string> = {
+	all: '不限',
+	overdue: '已逾期',
+	today: '今日到期',
+	tomorrow: '明日到期',
+	week: '7 日内到期',
+}
+
 function buildQueryString(params: Record<string, string>): string {
 	const search = new URLSearchParams()
 	Object.entries(params).forEach(([key, value]) => {
@@ -104,6 +114,7 @@ function buildQueryString(params: Record<string, string>): string {
 		if (key === 'priority' && value === 'all') return
 		if (key === 'labelId' && !value) return
 		if (key === 'assignee' && value === 'all') return
+		if (key === 'due' && value === 'all') return
 		if (key === 'view' && value === 'list') return
 		search.set(key, value)
 	})
@@ -150,6 +161,7 @@ export function TasksView({
 	const [filterAssignee, setFilterAssignee] = useState(
 		currentQuery.assignee || 'all'
 	)
+	const [filterDue, setFilterDue] = useState(currentQuery.due || 'all')
 	const [view, setView] = useState<'list' | 'board'>(
 		currentQuery.view ?? 'list'
 	)
@@ -164,6 +176,7 @@ export function TasksView({
 		setPriority(currentQuery.priority || 'all')
 		setLabelId(currentQuery.labelId || '')
 		setFilterAssignee(currentQuery.assignee || 'all')
+		setFilterDue(currentQuery.due || 'all')
 		setView(currentQuery.view ?? 'list')
 	}, [
 		currentQuery.keyword,
@@ -171,6 +184,7 @@ export function TasksView({
 		currentQuery.projectId,
 		currentQuery.labelId,
 		currentQuery.assignee,
+		currentQuery.due,
 		currentQuery.sort,
 		currentQuery.dateFrom,
 		currentQuery.dateTo,
@@ -186,6 +200,7 @@ export function TasksView({
 				projectId: projectScopedId ?? projectId,
 				labelId,
 				assignee: filterAssignee,
+				due: filterDue,
 				sort,
 				dateFrom,
 				dateTo,
@@ -212,6 +227,7 @@ export function TasksView({
 			priority,
 			labelId,
 			filterAssignee,
+			filterDue,
 			view,
 			router,
 			startTransition,
@@ -287,6 +303,7 @@ export function TasksView({
 		setPriority('all')
 		setLabelId('')
 		setFilterAssignee('all')
+		setFilterDue('all')
 		setView('list')
 		startTransition(() => {
 			router.push(navigateBasePath)
@@ -312,6 +329,7 @@ export function TasksView({
 		(!projectScopedId && projectId !== 'all') ||
 		Boolean(currentQuery.labelId) ||
 		currentQuery.assignee !== 'all' ||
+		currentQuery.due !== 'all' ||
 		(currentQuery.keyword && currentQuery.keyword.length > 0) ||
 		sort !== 'updated_desc' ||
 		Boolean(currentQuery.dateFrom) ||
@@ -535,6 +553,31 @@ export function TasksView({
 								</SelectContent>
 							</Select>
 
+							<p className='mt-5 text-sm font-medium text-zinc-800'>截止日期（快捷）</p>
+							<p className='mt-1 text-xs text-zinc-500'>
+								按任务{' '}
+								<span className='font-medium text-zinc-600'>dueDate</span>{' '}
+								的日历区间（UTC）；「7 日内」含今日起共 7 天。
+							</p>
+							<Select
+								value={filterDue}
+								onValueChange={value => {
+									setFilterDue(value)
+									applyQuery({ due: value })
+								}}
+							>
+								<SelectTrigger className='mt-2'>
+									<SelectValue placeholder='不限' />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value='all'>不限</SelectItem>
+									<SelectItem value='overdue'>已逾期</SelectItem>
+									<SelectItem value='today'>今日到期</SelectItem>
+									<SelectItem value='tomorrow'>明日到期</SelectItem>
+									<SelectItem value='week'>7 日内到期</SelectItem>
+								</SelectContent>
+							</Select>
+
 							<p className='mt-5 text-sm font-medium text-zinc-800'>状态</p>
 							<div className='mt-3'>
 								<TaskStatusFilter
@@ -682,6 +725,15 @@ export function TasksView({
 							onRemove={() => {
 								setFilterAssignee('all')
 								applyQuery({ assignee: 'all' })
+							}}
+						/>
+					) : null}
+					{currentQuery.due !== 'all' ? (
+						<FilterChip
+							label={`截止：${DUE_FILTER_LABEL[currentQuery.due] ?? currentQuery.due}`}
+							onRemove={() => {
+								setFilterDue('all')
+								applyQuery({ due: 'all' })
 							}}
 						/>
 					) : null}

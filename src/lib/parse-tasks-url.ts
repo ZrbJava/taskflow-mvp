@@ -70,6 +70,15 @@ export function parseTasksTaskQuery(
 			? (rawPriority as TaskQuery['priority'])
 			: undefined
 
+	const rawDue = pickFirst(sp.due)?.trim().toLowerCase()
+	const due =
+		rawDue === 'overdue' ||
+		rawDue === 'today' ||
+		rawDue === 'tomorrow' ||
+		rawDue === 'week'
+			? (rawDue as TaskQuery['due'])
+			: undefined
+
 	return {
 		keyword,
 		status,
@@ -80,6 +89,7 @@ export function parseTasksTaskQuery(
 		dateFrom,
 		dateTo,
 		priority,
+		due,
 	}
 }
 

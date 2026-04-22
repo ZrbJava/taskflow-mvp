@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/db";
-import { updatedAtFilterFromQuery } from "@/lib/date-query";
+import {
+  type DueDateBucket,
+  dueDateFilterFromBucket,
+  updatedAtFilterFromQuery,
+} from "@/lib/date-query";
 import type { Prisma } from "@prisma/client";
 import type { TaskPaletteHit, TaskPriority, TaskStatus } from "@/types/task";
 
@@ -38,6 +42,8 @@ export interface TaskQuery {
   /** YYYY-MM-DD，按任务 `updatedAt`（UTC 日界） */
   dateFrom?: string;
   dateTo?: string;
+  /** 按 `dueDate` 的快捷区间（UTC 日界；`overdue` 不含已完成） */
+  due?: "all" | DueDateBucket;
 }
 
 function buildOrderBy(
@@ -79,12 +85,19 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
     dateFrom,
     dateTo,
     priority,
+    due,
   } = query;
 
   const where: Prisma.TaskWhereInput = { userId };
 
   if (status && status !== "all") {
     where.status = status;
+  } else if (due === "overdue") {
+    where.status = { not: "done" };
+  }
+
+  if (due && due !== "all") {
+    where.dueDate = dueDateFilterFromBucket(due as DueDateBucket);
   }
 
   if (projectId && projectId !== "all") {

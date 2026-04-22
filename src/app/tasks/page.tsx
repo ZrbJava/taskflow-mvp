@@ -103,6 +103,7 @@ export default async function TasksPage({
 						projectId: (query.projectId as string) ?? 'all',
 						labelId: query.labelId ?? '',
 						assignee: query.assignee ?? 'all',
+						due: query.due ?? 'all',
 						sort: query.sort ?? 'updated_desc',
 						dateFrom: query.dateFrom ?? '',
 						dateTo: query.dateTo ?? '',

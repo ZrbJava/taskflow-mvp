@@ -67,3 +67,53 @@ export function utcYmdDaysAgo(days: number): string {
   d.setUTCDate(d.getUTCDate() - days);
   return formatUtcYmd(d);
 }
+
+/** 从 `YYYY-MM-DD`（UTC）加减整数天，仍返回 `YYYY-MM-DD`。 */
+export function addUtcDaysFromYmd(ymd: string, deltaDays: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0));
+  dt.setUTCDate(dt.getUTCDate() + deltaDays);
+  return formatUtcYmd(dt);
+}
+
+function utcDayStart(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+}
+
+function utcDayEnd(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999));
+}
+
+export type DueDateBucket = "overdue" | "today" | "tomorrow" | "week";
+
+/** 将「截止快捷」转为 `Task.dueDate` 条件（UTC 日界）。 */
+export function dueDateFilterFromBucket(
+  bucket: DueDateBucket,
+): Prisma.DateTimeNullableFilter {
+  const today = utcTodayYmd();
+  switch (bucket) {
+    case "overdue":
+      return { not: null, lt: utcDayStart(today) };
+    case "today":
+      return {
+        gte: utcDayStart(today),
+        lte: utcDayEnd(today),
+      };
+    case "tomorrow": {
+      const tom = addUtcDaysFromYmd(today, 1);
+      return {
+        gte: utcDayStart(tom),
+        lte: utcDayEnd(tom),
+      };
+    }
+    case "week": {
+      const end = addUtcDaysFromYmd(today, 6);
+      return {
+        gte: utcDayStart(today),
+        lte: utcDayEnd(end),
+      };
+    }
+  }
+}
