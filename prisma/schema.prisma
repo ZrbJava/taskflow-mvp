@@ -31,10 +31,11 @@ model User {
   /// 作为负责人被指派的任务（MVP 仅支持指派给任务所有者本人）
   assignedTasks Task[]    @relation("TaskAssignee")
   projects     Project[]
-  labels       Label[]
-  comments     Comment[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  labels        Label[]
+  comments      Comment[]
+  notifications Notification[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Project {
@@ -64,6 +65,7 @@ model Task {
   labels          Label[]
   comments        Comment[]
   checklistItems  TaskChecklistItem[]
+  notifications   Notification[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -101,14 +103,32 @@ model Label {
 
 /// 任务下的讨论串（对标 issue comment）。
 model Comment {
-  id        String   @id @default(cuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  body      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String         @id @default(cuid())
+  taskId        String
+  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body          String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
 
   @@index([taskId, createdAt])
+}
+
+/// 站内通知（MVP：评论 @ 提及）。
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  commentId String
+  comment   Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, commentId])
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }

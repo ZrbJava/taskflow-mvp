@@ -13,6 +13,7 @@ import {
 	LineChart,
 	ListChecks,
 	Tag,
+	Bell,
 	Loader2,
 	Plus,
 	Search,
@@ -308,6 +309,14 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 										icon={<Tag className='h-4 w-4 text-zinc-500' />}
 									>
 										标签
+									</CmdItem>
+									<CmdItem
+										onSelect={() =>
+											run(() => router.push('/dashboard/notifications'))
+										}
+										icon={<Bell className='h-4 w-4 text-zinc-500' />}
+									>
+										通知
 									</CmdItem>
 									<CmdItem
 										onSelect={() =>

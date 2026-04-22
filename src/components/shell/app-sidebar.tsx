@@ -11,6 +11,7 @@ import {
 	LineChart,
 	LogOut,
 	CircleDot,
+	Bell,
 	Search,
 	Sparkles,
 	Tag,
@@ -25,6 +26,7 @@ interface SidebarProject {
 interface AppSidebarProps {
 	userEmail?: string | null
 	projects: SidebarProject[]
+	unreadNotificationCount?: number
 }
 
 const NAV_ITEMS = [
@@ -50,7 +52,11 @@ function isActive(pathname: string, href: string, exact: boolean): boolean {
 	return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-export function AppSidebar({ userEmail, projects }: AppSidebarProps) {
+export function AppSidebar({
+	userEmail,
+	projects,
+	unreadNotificationCount = 0,
+}: AppSidebarProps) {
 	const pathname = usePathname()
 	const searchParams = useSearchParams()
 	const tasksView = searchParams.get('view')
@@ -140,6 +146,32 @@ export function AppSidebar({ userEmail, projects }: AppSidebarProps) {
 								}`}
 							/>
 							看板
+						</Link>
+					</li>
+					<li>
+						<Link
+							href='/dashboard/notifications'
+							className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-700 transition hover:bg-zinc-100 ${
+								pathname === '/dashboard/notifications'
+									? 'bg-violet-50 font-medium text-violet-700'
+									: ''
+							}`}
+						>
+							<Bell
+								className={`h-4 w-4 ${
+									pathname === '/dashboard/notifications'
+										? 'text-violet-500'
+										: 'text-zinc-500'
+								}`}
+							/>
+							<span className='flex-1'>通知</span>
+							{unreadNotificationCount > 0 ? (
+								<span className='min-w-[1.25rem] rounded-full bg-violet-600 px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-white'>
+									{unreadNotificationCount > 99
+										? '99+'
+										: unreadNotificationCount}
+								</span>
+							) : null}
 						</Link>
 					</li>
 					{NAV_ITEMS.map(item => {

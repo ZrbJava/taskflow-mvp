@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { assertCan } from '@/lib/acl'
+import { createMentionNotificationsForComment } from '@/app/actions/notifications'
 
 function revalidateTaskThread(projectId?: string | null) {
 	revalidatePath('/tasks')
@@ -32,12 +33,20 @@ export async function addCommentAction(taskId: string, body: string) {
 	})
 	if (!gate.ok) return { ok: false as const, error: gate.error }
 
-	await prisma.comment.create({
+	const comment = await prisma.comment.create({
 		data: {
 			taskId,
 			userId,
 			body: trimmed,
 		},
+		select: { id: true },
+	})
+
+	await createMentionNotificationsForComment({
+		body: trimmed,
+		authorId: userId,
+		taskId,
+		commentId: comment.id,
 	})
 
 	revalidateTaskThread(task.projectId)

@@ -35,6 +35,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { CommentBody } from "@/components/comment-body";
 import { TaskChecklistBlock } from "@/components/task-checklist-block";
 import { dueDateToYmd } from "@/lib/due-date";
 import { PRIORITY_LABEL } from "@/lib/task-priority";
@@ -458,7 +459,9 @@ export function TaskDetailSheet({
                     className="rounded-lg border border-zinc-100 bg-zinc-50/80 px-2 py-1.5 text-sm"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="whitespace-pre-wrap text-zinc-800">{c.body}</p>
+                      <div className="text-zinc-800">
+                        <CommentBody text={c.body} />
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
@@ -480,7 +483,7 @@ export function TaskDetailSheet({
             <Textarea
               rows={3}
               className="mt-2 text-sm"
-              placeholder="写一条评论…"
+              placeholder="写一条评论…（@完整邮箱 或 @显示名 可提及他人）"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
             />

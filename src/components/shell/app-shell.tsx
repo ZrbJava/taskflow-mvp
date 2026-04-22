@@ -16,11 +16,16 @@ export async function AppShell({ children }: AppShellProps) {
 		return <div className='flex min-h-screen flex-col'>{children}</div>
 	}
 
-	const projects = await prisma.project.findMany({
-		where: { userId: session.user.id },
-		orderBy: { updatedAt: 'desc' },
-		select: { id: true, name: true },
-	})
+	const [projects, unreadNotificationCount] = await Promise.all([
+		prisma.project.findMany({
+			where: { userId: session.user.id },
+			orderBy: { updatedAt: 'desc' },
+			select: { id: true, name: true },
+		}),
+		prisma.notification.count({
+			where: { userId: session.user.id, readAt: null },
+		}),
+	])
 
 	return (
 		<div className='flex min-h-screen'>
@@ -32,7 +37,11 @@ export async function AppShell({ children }: AppShellProps) {
 					/>
 				}
 			>
-				<AppSidebar userEmail={session.user.email} projects={projects} />
+				<AppSidebar
+					userEmail={session.user.email}
+					projects={projects}
+					unreadNotificationCount={unreadNotificationCount}
+				/>
 			</Suspense>
 			<main className='min-w-0 flex-1 bg-zinc-50'>{children}</main>
 			<CommandMenu projects={projects} />
