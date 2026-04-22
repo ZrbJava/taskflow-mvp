@@ -79,6 +79,13 @@ export default async function ProjectDetailPage({
 			name: l.name,
 			color: l.color,
 		})),
+		assignee: t.assignee
+			? {
+					id: t.assignee.id,
+					name: t.assignee.name,
+					email: t.assignee.email,
+				}
+			: null,
 	}))
 
 	return (
@@ -120,6 +127,7 @@ export default async function ProjectDetailPage({
 					status: (query.status as string) ?? 'all',
 					projectId: id,
 					labelId: query.labelId ?? '',
+					assignee: query.assignee ?? 'all',
 					sort: query.sort ?? 'updated_desc',
 					dateFrom: query.dateFrom ?? '',
 					dateTo: query.dateTo ?? '',

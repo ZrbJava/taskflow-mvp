@@ -52,6 +52,8 @@ interface CurrentQuery {
 	projectId: string
 	/** 按标签筛选（空字符串表示不筛选） */
 	labelId: string
+	/** `all` | `mine` | `unassigned` */
+	assignee: string
 	sort: string
 	dateFrom: string
 	dateTo: string
@@ -85,6 +87,12 @@ const STATUS_CHIP: Record<string, string> = {
 	done: '已完成',
 }
 
+const ASSIGNEE_FILTER_LABEL: Record<string, string> = {
+	all: '全部',
+	mine: '分配给我',
+	unassigned: '未分配',
+}
+
 function buildQueryString(params: Record<string, string>): string {
 	const search = new URLSearchParams()
 	Object.entries(params).forEach(([key, value]) => {
@@ -95,6 +103,7 @@ function buildQueryString(params: Record<string, string>): string {
 		if ((key === 'dateFrom' || key === 'dateTo') && !value) return
 		if (key === 'priority' && value === 'all') return
 		if (key === 'labelId' && !value) return
+		if (key === 'assignee' && value === 'all') return
 		if (key === 'view' && value === 'list') return
 		search.set(key, value)
 	})
@@ -138,6 +147,9 @@ export function TasksView({
 	const [dateTo, setDateTo] = useState(currentQuery.dateTo || '')
 	const [priority, setPriority] = useState(currentQuery.priority || 'all')
 	const [labelId, setLabelId] = useState(currentQuery.labelId || '')
+	const [filterAssignee, setFilterAssignee] = useState(
+		currentQuery.assignee || 'all'
+	)
 	const [view, setView] = useState<'list' | 'board'>(
 		currentQuery.view ?? 'list'
 	)
@@ -151,12 +163,14 @@ export function TasksView({
 		setDateTo(currentQuery.dateTo || '')
 		setPriority(currentQuery.priority || 'all')
 		setLabelId(currentQuery.labelId || '')
+		setFilterAssignee(currentQuery.assignee || 'all')
 		setView(currentQuery.view ?? 'list')
 	}, [
 		currentQuery.keyword,
 		currentQuery.status,
 		currentQuery.projectId,
 		currentQuery.labelId,
+		currentQuery.assignee,
 		currentQuery.sort,
 		currentQuery.dateFrom,
 		currentQuery.dateTo,
@@ -171,6 +185,7 @@ export function TasksView({
 				status,
 				projectId: projectScopedId ?? projectId,
 				labelId,
+				assignee: filterAssignee,
 				sort,
 				dateFrom,
 				dateTo,
@@ -196,6 +211,7 @@ export function TasksView({
 			dateTo,
 			priority,
 			labelId,
+			filterAssignee,
 			view,
 			router,
 			startTransition,
@@ -270,6 +286,7 @@ export function TasksView({
 		setDateTo('')
 		setPriority('all')
 		setLabelId('')
+		setFilterAssignee('all')
 		setView('list')
 		startTransition(() => {
 			router.push(navigateBasePath)
@@ -294,6 +311,7 @@ export function TasksView({
 		status !== 'all' ||
 		(!projectScopedId && projectId !== 'all') ||
 		Boolean(currentQuery.labelId) ||
+		currentQuery.assignee !== 'all' ||
 		(currentQuery.keyword && currentQuery.keyword.length > 0) ||
 		sort !== 'updated_desc' ||
 		Boolean(currentQuery.dateFrom) ||
@@ -499,6 +517,24 @@ export function TasksView({
 								</SelectContent>
 							</Select>
 
+							<p className='mt-5 text-sm font-medium text-zinc-800'>负责人</p>
+							<Select
+								value={filterAssignee}
+								onValueChange={value => {
+									setFilterAssignee(value)
+									applyQuery({ assignee: value })
+								}}
+							>
+								<SelectTrigger className='mt-2'>
+									<SelectValue placeholder='全部' />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value='all'>全部</SelectItem>
+									<SelectItem value='mine'>分配给我</SelectItem>
+									<SelectItem value='unassigned'>未分配</SelectItem>
+								</SelectContent>
+							</Select>
+
 							<p className='mt-5 text-sm font-medium text-zinc-800'>状态</p>
 							<div className='mt-3'>
 								<TaskStatusFilter
@@ -637,6 +673,15 @@ export function TasksView({
 							onRemove={() => {
 								setLabelId('')
 								applyQuery({ labelId: '' })
+							}}
+						/>
+					) : null}
+					{currentQuery.assignee !== 'all' ? (
+						<FilterChip
+							label={`负责人：${ASSIGNEE_FILTER_LABEL[currentQuery.assignee] ?? currentQuery.assignee}`}
+							onRemove={() => {
+								setFilterAssignee('all')
+								applyQuery({ assignee: 'all' })
 							}}
 						/>
 					) : null}

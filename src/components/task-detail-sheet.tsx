@@ -12,6 +12,7 @@ import {
 import { createLabelAction, listLabelsForUserAction, setTaskLabelsAction } from "@/app/actions/labels";
 import {
   deleteTaskAction,
+  setTaskAssigneeAction,
   updateTaskAction,
   updateTaskStatusAction,
 } from "@/app/actions/tasks";
@@ -138,6 +139,22 @@ export function TaskDetailSheet({
       }
       router.refresh();
       toast.success(`状态已更新为 ${statusLabel[next]}`);
+    });
+  };
+
+  const onAssigneeChange = (value: string) => {
+    startTransition(async () => {
+      const res = await setTaskAssigneeAction(
+        task.id,
+        value === "me" ? "self" : "unassigned",
+      );
+      if (!res.ok) {
+        setError(res.error);
+        toast.error(res.error ?? "更新负责人失败");
+        return;
+      }
+      router.refresh();
+      toast.success(value === "me" ? "已指派给我" : "已设为未分配");
     });
   };
 
@@ -340,6 +357,26 @@ export function TaskDetailSheet({
             />
             <p className="mt-1 text-[11px] text-zinc-400">
               留空表示不设截止日；保存时写入。
+            </p>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-zinc-500">负责人</label>
+            <Select
+              value={task.assignee ? "me" : "none"}
+              onValueChange={onAssigneeChange}
+              disabled={pending}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">未分配</SelectItem>
+                <SelectItem value="me">我</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[11px] text-zinc-400">
+              当前账号为单用户工作台；多人协作时可扩展指派成员。
             </p>
           </div>
 

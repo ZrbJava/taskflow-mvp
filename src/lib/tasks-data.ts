@@ -21,6 +21,8 @@ export interface TaskQuery {
   projectId?: string | "all";
   /** 仅保留带该标签的任务（标签须属于同一用户） */
   labelId?: string;
+  /** 负责人：`mine` = 指派给我，`unassigned` = 未分配 */
+  assignee?: "all" | "mine" | "unassigned";
   sort?: TaskSort;
   priority?: TaskPriority | "all";
   /** YYYY-MM-DD，按任务 `updatedAt`（UTC 日界） */
@@ -62,6 +64,7 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
     status,
     projectId,
     labelId,
+    assignee,
     sort,
     dateFrom,
     dateTo,
@@ -80,6 +83,12 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
 
   if (labelId) {
     where.labels = { some: { id: labelId, userId } };
+  }
+
+  if (assignee === "mine") {
+    where.assigneeId = userId;
+  } else if (assignee === "unassigned") {
+    where.assigneeId = null;
   }
 
   if (priority && priority !== "all") {
@@ -105,6 +114,7 @@ export async function getTasksForUser(userId: string, query: TaskQuery = {}) {
     include: {
       project: { select: { id: true, name: true } },
       labels: { select: { id: true, name: true, color: true } },
+      assignee: { select: { id: true, name: true, email: true } },
     },
   });
 }

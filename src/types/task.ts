@@ -9,6 +9,13 @@ export type TaskLabelRef = {
 	color: string | null
 }
 
+/** 负责人（当前 MVP 仅支持指派给任务所有者本人） */
+export type TaskAssigneeRef = {
+	id: string
+	name: string | null
+	email: string
+}
+
 export interface TaskListItem {
 	id: string
 	title: string
@@ -22,6 +29,8 @@ export interface TaskListItem {
 	projectId: string | null
 	project: { id: string; name: string } | null
 	labels: TaskLabelRef[]
+	/** 未分配则为 null */
+	assignee: TaskAssigneeRef | null
 }
 
 /** 命令面板等场景的轻量任务摘要（无 description）。 */

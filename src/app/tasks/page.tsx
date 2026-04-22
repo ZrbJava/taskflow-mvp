@@ -57,6 +57,13 @@ export default async function TasksPage({
 			name: l.name,
 			color: l.color,
 		})),
+		assignee: t.assignee
+			? {
+					id: t.assignee.id,
+					name: t.assignee.name,
+					email: t.assignee.email,
+				}
+			: null,
 	}))
 
 	return (
@@ -70,7 +77,7 @@ export default async function TasksPage({
 						我的任务
 					</h1>
 					<p className='mt-2 text-sm text-zinc-500'>
-						关键词、状态、优先级、项目、标签、排序与日期；条件写入
+						关键词、状态、优先级、项目、标签、负责人、排序与日期；条件写入
 						URL，刷新不丢。
 					</p>
 				</div>
@@ -94,6 +101,7 @@ export default async function TasksPage({
 						status: (query.status as string) ?? 'all',
 						projectId: (query.projectId as string) ?? 'all',
 						labelId: query.labelId ?? '',
+						assignee: query.assignee ?? 'all',
 						sort: query.sort ?? 'updated_desc',
 						dateFrom: query.dateFrom ?? '',
 						dateTo: query.dateTo ?? '',

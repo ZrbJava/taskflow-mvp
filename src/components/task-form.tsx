@@ -36,6 +36,7 @@ export function TaskForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [projectId, setProjectId] = useState("");
+  const [assignToMe, setAssignToMe] = useState(false);
 
   const form = useForm<CreateTaskInput>({
     resolver: zodResolver(createTaskSchema),
@@ -61,6 +62,9 @@ export function TaskForm({
       } else if (projectId) {
         fd.set("projectId", projectId);
       }
+      if (assignToMe) {
+        fd.set("assignToMe", "true");
+      }
 
       const res = await createTaskAction(fd);
       if (!res.ok) {
@@ -70,6 +74,7 @@ export function TaskForm({
       }
       form.reset();
       setProjectId("");
+      setAssignToMe(false);
       router.refresh();
       toast.success("任务已创建");
       onCreated?.();
@@ -147,6 +152,15 @@ export function TaskForm({
             {...form.register("dueDate")}
           />
         </div>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-600">
+          <input
+            type="checkbox"
+            checked={assignToMe}
+            onChange={(e) => setAssignToMe(e.target.checked)}
+            className="rounded border-zinc-300"
+          />
+          创建时指派给我
+        </label>
         <div className="grid gap-2 sm:grid-cols-2">
           {projects.length > 0 && !defaultProjectId ? (
             <div>

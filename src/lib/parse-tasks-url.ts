@@ -47,6 +47,12 @@ export function parseTasksTaskQuery(
 	const rawLabelId = pickFirst(sp.labelId)?.trim()
 	const labelId = rawLabelId && rawLabelId.length > 0 ? rawLabelId : undefined
 
+	const rawAssignee = pickFirst(sp.assignee)?.trim().toLowerCase()
+	const assignee =
+		rawAssignee === 'mine' || rawAssignee === 'unassigned'
+			? (rawAssignee as TaskQuery['assignee'])
+			: undefined
+
 	const rawSort = pickFirst(sp.sort)
 	const sort =
 		rawSort && ALLOWED_SORT.includes(rawSort as TaskSort)
@@ -69,6 +75,7 @@ export function parseTasksTaskQuery(
 		status,
 		projectId,
 		labelId,
+		assignee,
 		sort,
 		dateFrom,
 		dateTo,

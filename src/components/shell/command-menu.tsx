@@ -16,6 +16,7 @@ import {
 	Loader2,
 	Plus,
 	Search,
+	User,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -283,6 +284,14 @@ export function CommandMenu({ projects }: CommandMenuProps) {
 										icon={<Columns2 className='h-4 w-4 text-zinc-500' />}
 									>
 										收件箱看板
+									</CmdItem>
+									<CmdItem
+										onSelect={() =>
+											run(() => router.push('/tasks?assignee=mine'))
+										}
+										icon={<User className='h-4 w-4 text-zinc-500' />}
+									>
+										分配给我的任务
 									</CmdItem>
 									<CmdItem
 										onSelect={() =>

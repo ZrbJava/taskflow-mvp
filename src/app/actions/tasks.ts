@@ -72,6 +72,10 @@ export async function createTaskAction(formData: FormData) {
 		}
 	}
 
+	const assignToMe =
+		formData.get('assignToMe') === 'on' ||
+		formData.get('assignToMe') === 'true'
+
 	await prisma.task.create({
 		data: {
 			title,
@@ -81,6 +85,7 @@ export async function createTaskAction(formData: FormData) {
 			dueDate: dueDateResolved,
 			userId: userId!,
 			projectId,
+			assigneeId: assignToMe ? userId! : null,
 		},
 	})
 
@@ -179,6 +184,44 @@ export async function updateTaskAction(formData: FormData) {
 	await prisma.task.update({
 		where: { id },
 		data,
+	})
+
+	revalidateTaskViews(existing.projectId)
+	return { ok: true as const }
+}
+
+export async function setTaskAssigneeAction(
+	taskId: string,
+	mode: 'unassigned' | 'self',
+) {
+	const session = await auth()
+	const userId = session?.user?.id
+
+	if (!userId) return { ok: false as const, error: '未登录' }
+
+	const existing = await prisma.task.findUnique({
+		where: { id: taskId },
+		select: { userId: true, projectId: true },
+	})
+	if (!existing) {
+		return { ok: false as const, error: '任务不存在' }
+	}
+
+	const gate = assertCan(userId, 'update', {
+		type: 'task',
+		ownerId: existing.userId,
+	})
+	if (!gate.ok) return { ok: false as const, error: gate.error }
+
+	// MVP：仅支持将负责人设为当前用户本人或清空（多人指派可后续扩展）
+	const assigneeId = mode === 'self' ? userId : null
+	if (mode === 'self' && userId !== existing.userId) {
+		return { ok: false as const, error: '仅任务所有者可指派给自己' }
+	}
+
+	await prisma.task.update({
+		where: { id: taskId },
+		data: { assigneeId },
 	})
 
 	revalidateTaskViews(existing.projectId)

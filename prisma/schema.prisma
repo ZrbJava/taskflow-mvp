@@ -28,6 +28,8 @@ model User {
   name         String?
   passwordHash String
   tasks        Task[]
+  /// 作为负责人被指派的任务（MVP 仅支持指派给任务所有者本人）
+  assignedTasks Task[]    @relation("TaskAssignee")
   projects     Project[]
   labels       Label[]
   comments     Comment[]
@@ -54,6 +56,9 @@ model Task {
   dueDate     DateTime?
   userId      String
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 负责人（当前仅允许为空或等于 `userId`，为多人协作预留字段）
+  assigneeId  String?
+  assignee    User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   projectId   String?
   project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   labels      Label[]
@@ -63,6 +68,7 @@ model Task {
 
   @@index([userId, updatedAt])
   @@index([userId, dueDate])
+  @@index([userId, assigneeId])
 }
 
 /// 用户维度的标签，用于跨项目归类任务（对标 Linear Labels / Jira 标签）。

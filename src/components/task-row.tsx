@@ -162,7 +162,14 @@ export function TaskRow({
                 {task.description}
               </p>
             ) : null}
-            <TaskLabelChips labels={task.labels} className="mt-1.5" />
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <TaskLabelChips labels={task.labels} />
+              {task.assignee ? (
+                <span className="rounded border border-violet-200 bg-violet-50 px-1.5 py-px text-[10px] font-medium text-violet-700">
+                  我
+                </span>
+              ) : null}
+            </div>
           </span>
         </button>
 
