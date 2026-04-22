@@ -5,6 +5,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { assertCan } from '@/lib/acl'
 import { createMentionNotificationsForComment } from '@/app/actions/notifications'
+import { logTaskActivity } from '@/lib/task-activity-log'
 
 function revalidateTaskThread(projectId?: string | null) {
 	revalidatePath('/tasks')
@@ -47,6 +48,13 @@ export async function addCommentAction(taskId: string, body: string) {
 		authorId: userId,
 		taskId,
 		commentId: comment.id,
+	})
+
+	await logTaskActivity({
+		taskId,
+		userId,
+		kind: 'comment',
+		summary: '添加了一条评论',
 	})
 
 	revalidateTaskThread(task.projectId)

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { assertCan } from '@/lib/acl'
+import { logTaskActivity } from '@/lib/task-activity-log'
 
 function revalidateAllTaskSurfaces(projectId?: string | null) {
 	revalidatePath('/tasks')
@@ -92,6 +93,13 @@ export async function setTaskLabelsAction(taskId: string, labelIds: string[]) {
 		data: {
 			labels: { set: unique.map(id => ({ id })) },
 		},
+	})
+
+	await logTaskActivity({
+		taskId,
+		userId,
+		kind: 'labels',
+		summary: `更新了标签（共 ${unique.length} 个）`,
 	})
 
 	revalidateAllTaskSurfaces(task.projectId)

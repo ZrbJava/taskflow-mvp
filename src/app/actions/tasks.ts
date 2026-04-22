@@ -6,7 +6,14 @@ import { prisma } from '@/lib/db'
 import { assertCan, can } from '@/lib/acl'
 import { dueDateFromYmd } from '@/lib/due-date'
 import { createTaskSchema, updateTaskSchema } from '@/lib/validations/task'
+import { logTaskActivity } from '@/lib/task-activity-log'
 import type { TaskPriority } from '@/types/task'
+
+const STATUS_LOG: Record<'todo' | 'doing' | 'done', string> = {
+	todo: '待处理',
+	doing: '进行中',
+	done: '已完成',
+}
 
 function revalidateTaskViews(projectId?: string | null) {
 	revalidatePath('/tasks')
@@ -76,7 +83,7 @@ export async function createTaskAction(formData: FormData) {
 		formData.get('assignToMe') === 'on' ||
 		formData.get('assignToMe') === 'true'
 
-	await prisma.task.create({
+	const created = await prisma.task.create({
 		data: {
 			title,
 			description: description?.trim() ? description.trim() : null,
@@ -87,6 +94,14 @@ export async function createTaskAction(formData: FormData) {
 			projectId,
 			assigneeId: assignToMe ? userId! : null,
 		},
+		select: { id: true },
+	})
+
+	await logTaskActivity({
+		taskId: created.id,
+		userId: userId!,
+		kind: 'create',
+		summary: '创建了任务',
 	})
 
 	revalidateTaskViews(projectId)
@@ -118,9 +133,17 @@ export async function updateTaskStatusAction(taskId: string, status: string) {
 	})
 	if (!gate.ok) return { ok: false as const, error: gate.error }
 
+	const next = parsed.data.status as keyof typeof STATUS_LOG
 	await prisma.task.update({
 		where: { id: taskId },
-		data: { status: parsed.data.status },
+		data: { status: next },
+	})
+
+	await logTaskActivity({
+		taskId,
+		userId,
+		kind: 'status',
+		summary: `将状态改为「${STATUS_LOG[next]}」`,
 	})
 
 	revalidateTaskViews(existing.projectId)
@@ -150,7 +173,15 @@ export async function updateTaskAction(formData: FormData) {
 
 	const existing = await prisma.task.findUnique({
 		where: { id },
-		select: { userId: true, projectId: true },
+		select: {
+			userId: true,
+			projectId: true,
+			title: true,
+			description: true,
+			status: true,
+			priority: true,
+			dueDate: true,
+		},
 	})
 	if (!existing) {
 		return { ok: false as const, error: '任务不存在' }
@@ -185,6 +216,39 @@ export async function updateTaskAction(formData: FormData) {
 		where: { id },
 		data,
 	})
+
+	const parts: string[] = []
+	if (data.title !== undefined && data.title !== existing.title) parts.push('标题')
+	if (
+		data.description !== undefined &&
+		(data.description ?? '') !== (existing.description ?? '')
+	) {
+		parts.push('描述')
+	}
+	if (data.status !== undefined && data.status !== existing.status) {
+		parts.push('状态')
+	}
+	if (data.priority !== undefined && data.priority !== existing.priority) {
+		parts.push('优先级')
+	}
+	if (data.dueDate !== undefined) {
+		const exYmd = existing.dueDate
+			? existing.dueDate.toISOString().slice(0, 10)
+			: ''
+		const nvYmd =
+			data.dueDate === null
+				? ''
+				: data.dueDate.toISOString().slice(0, 10)
+		if (exYmd !== nvYmd) parts.push('截止日期')
+	}
+	if (parts.length > 0) {
+		await logTaskActivity({
+			taskId: id,
+			userId,
+			kind: 'edit',
+			summary: `更新了${parts.join('、')}`,
+		})
+	}
 
 	revalidateTaskViews(existing.projectId)
 	return { ok: true as const }
@@ -222,6 +286,13 @@ export async function setTaskAssigneeAction(
 	await prisma.task.update({
 		where: { id: taskId },
 		data: { assigneeId },
+	})
+
+	await logTaskActivity({
+		taskId,
+		userId,
+		kind: 'assignee',
+		summary: mode === 'self' ? '将负责人设为「我」' : '清除了负责人',
 	})
 
 	revalidateTaskViews(existing.projectId)

@@ -34,6 +34,7 @@ model User {
   labels        Label[]
   comments      Comment[]
   notifications Notification[]
+  taskActivities TaskActivity[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -66,6 +67,7 @@ model Task {
   comments        Comment[]
   checklistItems  TaskChecklistItem[]
   notifications   Notification[]
+  activities      TaskActivity[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -131,4 +133,18 @@ model Notification {
   @@unique([userId, commentId])
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+/// 任务操作审计 / 活动流（时间线展示）。
+model TaskActivity {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  summary   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { assertCan } from '@/lib/acl'
+import { logTaskActivity } from '@/lib/task-activity-log'
 
 const MAX_ITEMS = 50
 const TITLE_MAX = 200
@@ -85,6 +86,13 @@ export async function addChecklistItemAction(taskId: string, title: string) {
 		select: { id: true, title: true, done: true },
 	})
 
+	await logTaskActivity({
+		taskId,
+		userId,
+		kind: 'checklist_add',
+		summary: `添加清单项「${trimmed.slice(0, 80)}」`,
+	})
+
 	revalidateTaskSurfaces(task.projectId)
 	return { ok: true as const, item }
 }
@@ -98,6 +106,8 @@ export async function toggleChecklistItemAction(itemId: string) {
 		where: { id: itemId },
 		select: {
 			done: true,
+			title: true,
+			taskId: true,
 			task: { select: { userId: true, projectId: true } },
 		},
 	})
@@ -109,13 +119,24 @@ export async function toggleChecklistItemAction(itemId: string) {
 	})
 	if (!gate.ok) return { ok: false as const, error: gate.error }
 
+	const nowDone = !row.done
+
 	await prisma.taskChecklistItem.update({
 		where: { id: itemId },
-		data: { done: !row.done },
+		data: { done: nowDone },
+	})
+
+	await logTaskActivity({
+		taskId: row.taskId,
+		userId,
+		kind: 'checklist_toggle',
+		summary: nowDone
+			? `完成清单项「${row.title.slice(0, 80)}」`
+			: `将清单项「${row.title.slice(0, 80)}」标回未完成`,
 	})
 
 	revalidateTaskSurfaces(row.task.projectId)
-	return { ok: true as const, done: !row.done }
+	return { ok: true as const, done: nowDone }
 }
 
 export async function deleteChecklistItemAction(itemId: string) {
@@ -125,7 +146,11 @@ export async function deleteChecklistItemAction(itemId: string) {
 
 	const row = await prisma.taskChecklistItem.findUnique({
 		where: { id: itemId },
-		select: { task: { select: { userId: true, projectId: true } } },
+		select: {
+			title: true,
+			taskId: true,
+			task: { select: { userId: true, projectId: true } },
+		},
 	})
 	if (!row) return { ok: false as const, error: '清单项不存在' }
 
@@ -136,6 +161,13 @@ export async function deleteChecklistItemAction(itemId: string) {
 	if (!gate.ok) return { ok: false as const, error: gate.error }
 
 	await prisma.taskChecklistItem.delete({ where: { id: itemId } })
+
+	await logTaskActivity({
+		taskId: row.taskId,
+		userId,
+		kind: 'checklist_delete',
+		summary: `删除清单项「${row.title.slice(0, 80)}」`,
+	})
 
 	revalidateTaskSurfaces(row.task.projectId)
 	return { ok: true as const }
